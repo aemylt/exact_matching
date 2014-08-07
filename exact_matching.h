@@ -24,7 +24,7 @@ int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int*
     while ((1 << lm) <= m) lm++;
     lm++;
     fingerprinter printer = fingerprinter_build(n, alpha);
-    fingerprint tmp = init_fingerprint(), T_f = init_fingerprint();
+    fingerprint tmp = init_fingerprint(), tmp2 = init_fingerprint(), T_f = init_fingerprint();
     pattern_row *P_i = malloc(lm * sizeof(pattern_row));
     P_i[0].P = init_fingerprint();
     set_fingerprint(printer, P, 1, P_i[0].P);
@@ -57,9 +57,10 @@ int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int*
     for (i = 0; i < n; i++) {
         j = lm - 2;
         if ((P_i[j].end > 0) && (i - P_i[j].VOs[0].location == m - P_i[j].row_size)) {
-            //set_fingerprint(printer, &T[i - P_i[j].row_size + 1], P_i[j].row_size, tmp);
-            //fingerprint_concat(printer->p, P_i[j].VOs[0].T_f, tmp, T_f);
-            set_fingerprint(printer, &T[i - m + 1], m, T_f);
+            set_fingerprint(printer, &T[i - m + 1], P_i[j].row_size, tmp);
+            set_fingerprint(printer, &T[i - m + P_i[j].row_size + 1], m - P_i[j].row_size, tmp2);
+            fingerprint_concat(printer->p, tmp, tmp2, T_f);
+
             if (fingerprint_equals (P_i[j + 1].P, T_f)) results[matches++] = i + 1;
             memmove(P_i[j].VOs, &P_i[j].VOs[1], ((P_i[j].row_size << 1) - 1) * sizeof(pattern_row));
             P_i[j].end--;
@@ -67,9 +68,9 @@ int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int*
 
         for (j = lm - 3; j >= 0; j--) {
             if ((P_i[j].end > 0) && (i - P_i[j].VOs[0].location == P_i[j].row_size)) {
-                //set_fingerprint(printer, &T[i - (P_i[j].row_size << 1) + 1], P_i[j].row_size, tmp);
-                //fingerprint_concat(printer->p, P_i[j].VOs[0].T_f, tmp, T_f);
-                set_fingerprint(printer, &T[i - (P_i[j].row_size << 1) + 1], P_i[j].row_size << 1, T_f);
+                set_fingerprint(printer, &T[i - (P_i[j].row_size << 1) + 1], P_i[j].row_size, tmp);
+                set_fingerprint(printer, &T[i - P_i[j].row_size + 1], P_i[j].row_size, tmp2);
+                fingerprint_concat(printer->p, tmp, tmp2, T_f);
                 if (fingerprint_equals (P_i[j + 1].P, T_f)) {
                     P_i[j + 1].VOs[P_i[j + 1].end].T_f = T_f;
                     P_i[j + 1].VOs[P_i[j + 1].end].location = i;
