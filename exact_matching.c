@@ -3,13 +3,14 @@
 #include "exact_matching.h"
 
 int main(void) {
-    int n = 100, m = 20, i;
-    int* results = malloc((n - m + 1) * sizeof(int));
-    int count = fingerprint_match("aaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaaabbbbbbbbbbaaaaaaaaaabbbbbcccccaaaaa", n, "aaaaabbbbbcccccaaaaa", m, 0, results);
+    int n = 100, m = 20, i, *results = malloc((n - m + 1) * sizeof(int)), alpha = 0;
+    char *T = "aaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaaabbbbbbbbbbaaaaaaaaaabbbbbcccccaaaaa", *P = "aaaaabbbbbcccccaaaaa";
+    int count = fingerprint_match_naive(T, n, P, m, alpha, results);
 
     for (i = 0; i < count - 1; i++) {
         printf("%d, ", results[i]);
     }
     printf("%d\n", results[count - 1]);
+    fingerprint_match_allcrosses(T, n, P, m, alpha, results);
     return 0;
 }

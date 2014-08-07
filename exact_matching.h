@@ -3,18 +3,45 @@
 
 #include "karp_rabin.h"
 
-int fingerprint_match(char* T, int n, char* P, int m, int alpha, int* results) {
+#include <gmp.h>
+
+int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int* results) {
+    int lm = 0, i, j;
+    while ((1 << lm) <= m) lm++;
+    printf("%d\n", lm);
+    fingerprinter printer = fingerprinter_build(n, alpha);
+    fingerprint tmp = init_fingerprint(), *P_i = malloc(lm * sizeof(fingerprint));
+    for (i = 0; i < lm - 1; i++) {
+        P_i[i] = init_fingerprint();
+        set_fingerprint(printer, P, 1 << i, P_i[i]);
+        gmp_printf("%Zd, ", P_i[i]->finger);
+    }
+    P_i[lm - 1] = init_fingerprint();
+    set_fingerprint(printer, P, m, P_i[lm - 1]);
+    gmp_printf("%Zd\n", P_i[lm - 1]->finger);
+
+    set_fingerprint(printer, P, 1, P_i[0]);
+    gmp_printf("%Zd, ", P_i[0]->finger);
+    for (i = 1; i < lm - 1; i++) {
+        j = 1 << (i - 1);
+        set_fingerprint(printer, &P[j], j, tmp);
+        fingerprint_concat(printer->p, P_i[i - 1], tmp, P_i[i]);
+        gmp_printf("%Zd, ", P_i[i]->finger);
+    }
+    j = 1 << (lm - 2);
+    set_fingerprint(printer, &P[j], m - j, tmp);
+    fingerprint_concat(printer->p, P_i[lm - 2], tmp, P_i[lm - 1]);
+    gmp_printf("%Zd\n", P_i[lm - 1]->finger);
+    return 0;
+}
+
+int fingerprint_match_naive(char* T, int n, char* P, int m, int alpha, int* results) {
     int count = 0, i;
     fingerprinter printer = fingerprinter_build(n, alpha);
-    fingerprint T_f, P_f, T_i, T_m, tmp;
+    fingerprint T_f = init_fingerprint(), P_f = init_fingerprint(), T_i = init_fingerprint(), T_m = init_fingerprint(), tmp = init_fingerprint();
     int size = n - m;
-    P_f = init_fingerprint();
     set_fingerprint(printer, P, m, P_f);
-    T_f = init_fingerprint();
     set_fingerprint(printer, T, m, T_f);
-    T_i = init_fingerprint();
-    T_m = init_fingerprint();
-    tmp = init_fingerprint();
     if (fingerprint_equals(T_f, P_f)) results[count++] = 0;
     for (i = 0; i < size; i++) {
         set_fingerprint(printer, &T[i], 1, T_i);
