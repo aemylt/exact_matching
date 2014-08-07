@@ -83,6 +83,12 @@ void set_fingerprint(fingerprinter printer, char* T, unsigned int l, fingerprint
     mpz_invert(print->r_mk, print->r_k, printer->p);
 }
 
+void fingerprint_assign(fingerprint from, fingerprint to) {
+    mpz_set(to->finger, from->finger);
+    mpz_set(to->r_k, from->r_k);
+    mpz_set(to->r_mk, from->r_mk);
+}
+
 void fingerprint_suffix(mpz_t p, fingerprint uv, fingerprint u, fingerprint v) {
     mpz_mul(v->r_k, uv->r_k, u->r_mk);
     mpz_mod(v->r_k, v->r_k, p);

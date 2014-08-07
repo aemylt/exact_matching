@@ -19,6 +19,15 @@ typedef struct {
     viable_occurance *VOs;
 } pattern_row;
 
+void shift_row(pattern_row *P_i) {
+    int i;
+    for (i = 1; i < P_i->end; i++) {
+        P_i->VOs[i - 1].location = P_i->VOs[i].location;
+        fingerprint_assign(P_i->VOs[i].T_f, P_i->VOs[i - 1].T_f);
+    }
+    P_i->end--;
+}
+
 int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int* results) {
     int lm = 0, i, j, matches = 0;
     while ((1 << lm) <= m) lm++;
@@ -57,32 +66,28 @@ int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int*
     for (i = 0; i < n; i++) {
         j = lm - 2;
         if ((P_i[j].end > 0) && (i - P_i[j].VOs[0].location == m - P_i[j].row_size)) {
-            set_fingerprint(printer, &T[i - m + 1], P_i[j].row_size, tmp);
             set_fingerprint(printer, &T[i - m + P_i[j].row_size + 1], m - P_i[j].row_size, tmp2);
-            fingerprint_concat(printer->p, tmp, tmp2, T_f);
+            fingerprint_concat(printer->p, P_i[j].VOs[0].T_f, tmp2, T_f);
 
             if (fingerprint_equals (P_i[j + 1].P, T_f)) results[matches++] = i + 1;
-            memmove(P_i[j].VOs, &P_i[j].VOs[1], ((P_i[j].row_size << 1) - 1) * sizeof(pattern_row));
-            P_i[j].end--;
+            shift_row(&P_i[j]);
         }
 
         for (j = lm - 3; j >= 0; j--) {
             if ((P_i[j].end > 0) && (i - P_i[j].VOs[0].location == P_i[j].row_size)) {
-                set_fingerprint(printer, &T[i - (P_i[j].row_size << 1) + 1], P_i[j].row_size, tmp);
                 set_fingerprint(printer, &T[i - P_i[j].row_size + 1], P_i[j].row_size, tmp2);
-                fingerprint_concat(printer->p, tmp, tmp2, T_f);
+                fingerprint_concat(printer->p, P_i[j].VOs[0].T_f, tmp2, T_f);
                 if (fingerprint_equals (P_i[j + 1].P, T_f)) {
-                    P_i[j + 1].VOs[P_i[j + 1].end].T_f = T_f;
+                    fingerprint_assign(T_f, P_i[j + 1].VOs[P_i[j + 1].end].T_f);
                     P_i[j + 1].VOs[P_i[j + 1].end].location = i;
                     P_i[j + 1].end++;
                 }
-                memmove(P_i[j].VOs, &P_i[j].VOs[1], ((P_i[j].row_size << 1) - 1) * sizeof(pattern_row));
-                P_i[j].end--;
+                shift_row(&P_i[j]);
             }
         }
         set_fingerprint(printer, &T[i], 1, T_f);
         if (fingerprint_equals (P_i[0].P, T_f)) {
-            P_i[0].VOs[P_i[0].end].T_f = T_f;
+            fingerprint_assign(T_f, P_i[0].VOs[P_i[0].end].T_f);
             P_i[0].VOs[P_i[0].end].location = i;
             P_i[0].end++;
         }
