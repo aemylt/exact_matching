@@ -53,7 +53,6 @@ fingerprinter fingerprinter_build(unsigned int n, unsigned int alpha) {
 
 typedef struct fingerprint_t {
     mpz_t finger;
-    unsigned int k;
     mpz_t r_k;
     mpz_t r_mk;
 } *fingerprint;
@@ -77,7 +76,6 @@ fingerprint get_fingerprint(fingerprinter printer, char* T, unsigned int l) {
     mpz_invert(r_mk, r_i, printer->p);
 
     fingerprint print = malloc(sizeof(struct fingerprint_t));
-    print->k = l;
     mpz_init_set(print->finger, finger);
     mpz_init_set(print->r_k, r_i);
     mpz_init_set(print->r_mk, r_mk);
@@ -86,7 +84,6 @@ fingerprint get_fingerprint(fingerprinter printer, char* T, unsigned int l) {
 
 fingerprint fingerprint_suffix(mpz_t p, fingerprint uv, fingerprint u) {
     fingerprint v = malloc(sizeof(struct fingerprint_t));
-    v->k = uv->k - u->k;
     mpz_init(v->finger);
     mpz_init(v->r_k);
     mpz_init(v->r_mk);
@@ -104,7 +101,6 @@ fingerprint fingerprint_suffix(mpz_t p, fingerprint uv, fingerprint u) {
 
 fingerprint fingerprint_prefix(mpz_t p, fingerprint uv, fingerprint v) {
     fingerprint u = malloc(sizeof(struct fingerprint_t));
-    u->k = uv->k - v->k;
     mpz_init(u->finger);
     mpz_init(u->r_k);
     mpz_init(u->r_mk);
@@ -122,7 +118,6 @@ fingerprint fingerprint_prefix(mpz_t p, fingerprint uv, fingerprint v) {
 
 fingerprint fingerprint_concat(mpz_t p, fingerprint u, fingerprint v) {
     fingerprint uv = malloc(sizeof(struct fingerprint_t));
-    uv->k = u->k + v->k;
     mpz_init(uv->finger);
     mpz_init(uv->r_k);
     mpz_init(uv->r_mk);
@@ -139,21 +134,7 @@ fingerprint fingerprint_concat(mpz_t p, fingerprint u, fingerprint v) {
 }
 
 int fingerprint_equals(fingerprint T_f, fingerprint P_f) {
-    return ((T_f->k == P_f->k) && mpz_equals(T_f->r_k, P_f->r_k) && mpz_equals(T_f->r_mk, P_f->r_mk) && mpz_equals(T_f->finger, P_f->finger));
-}
-
-int fingerprint_match(char* T, int n, char* P, int m, int alpha, int* results) {
-    int count = 0, i;
-    fingerprinter printer = fingerprinter_build(n, alpha);
-    fingerprint T_f, P_f;
-    P_f = get_fingerprint(printer, P, m);
-    int size = n - m + 1;
-    for (i = 0; i < size; i++) {
-        T_f = get_fingerprint(printer, &T[i], m);
-        if (fingerprint_equals(T_f, P_f)) results[count++] = i;
-    }
-    results = realloc(results, count * sizeof(int));
-    return count;
+    return (mpz_equals(T_f->r_k, P_f->r_k) && mpz_equals(T_f->r_mk, P_f->r_mk) && mpz_equals(T_f->finger, P_f->finger));
 }
 
 #endif
