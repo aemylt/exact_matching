@@ -9,23 +9,29 @@ int main(void) {
     gmp_printf("p = %Zd\n", printer->p);
     gmp_printf("r = %Zd\n", printer->r);
 
-    fingerprint print = get_fingerprint(printer, "aaaaabbbbbcccccaaaaa", m);
+    fingerprint print = init_fingerprint();
+    set_fingerprint(printer, "aaaaabbbbbcccccaaaaa", m, print);
 
     gmp_printf("uv finger = %Zd\n", print->finger);
     gmp_printf("uv r_k = %Zd\n", print->r_k);
     gmp_printf("uv r_mk = %Zd\n", print->r_mk);
 
-    fingerprint prefix = get_fingerprint(printer, "aaaaa", 5);
+    fingerprint prefix = init_fingerprint();
+    set_fingerprint(printer, "aaaaa", 5, prefix);
 
-    fingerprint v = fingerprint_suffix(printer->p, print, prefix);
+    fingerprint v = init_fingerprint();
+    fingerprint_suffix(printer->p, print, prefix, v);
 
-    fingerprint suffix = get_fingerprint(printer, "bbbbbcccccaaaaa", 15);
+    fingerprint suffix = init_fingerprint();
+    set_fingerprint(printer, "bbbbbcccccaaaaa", 15, suffix);
     assert(fingerprint_equals(v, suffix));
 
-    fingerprint u = fingerprint_prefix(printer->p, print, suffix);
+    fingerprint u = init_fingerprint();
+    fingerprint_prefix(printer->p, print, suffix, u);
     assert(fingerprint_equals(u, prefix));
 
-    fingerprint uv = fingerprint_concat(printer->p, prefix, suffix);
+    fingerprint uv = init_fingerprint();
+    fingerprint_concat(printer->p, prefix, suffix, uv);
     assert(fingerprint_equals(uv, print));
 
     return 0;

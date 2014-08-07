@@ -57,37 +57,32 @@ typedef struct fingerprint_t {
     mpz_t r_mk;
 } *fingerprint;
 
-fingerprint get_fingerprint(fingerprinter printer, char* T, unsigned int l) {
-    mpz_t finger, r_i, r_mk;
-    mpz_init_set_ui(r_i, 1);
-    int i;
-
-    mpz_init_set_ui(finger, T[0]);
-
-    for (i = 1; i < l; i++) {
-        mpz_mul(r_i, r_i, printer->r);
-        mpz_addmul_ui(finger, r_i, T[i]);
-        mpz_mod(finger, finger, printer->p);
-    }
-    mpz_mul(r_i, r_i, printer->r);
-    mpz_mod(r_i, r_i, printer->p);
-
-    mpz_init(r_mk);
-    mpz_invert(r_mk, r_i, printer->p);
-
-    fingerprint print = malloc(sizeof(struct fingerprint_t));
-    mpz_init_set(print->finger, finger);
-    mpz_init_set(print->r_k, r_i);
-    mpz_init_set(print->r_mk, r_mk);
-    return print;
+fingerprint init_fingerprint() {
+    fingerprint finger = malloc(sizeof(struct fingerprint_t));
+    mpz_init(finger->finger);
+    mpz_init(finger->r_k);
+    mpz_init(finger->r_mk);
+    return finger;
 }
 
-fingerprint fingerprint_suffix(mpz_t p, fingerprint uv, fingerprint u) {
-    fingerprint v = malloc(sizeof(struct fingerprint_t));
-    mpz_init(v->finger);
-    mpz_init(v->r_k);
-    mpz_init(v->r_mk);
+void set_fingerprint(fingerprinter printer, char* T, unsigned int l, fingerprint print) {
+    mpz_set_ui(print->r_k, 1);
+    int i;
 
+    mpz_set_ui(print->finger, T[0]);
+
+    for (i = 1; i < l; i++) {
+        mpz_mul(print->r_k, print->r_k, printer->r);
+        mpz_addmul_ui(print->finger, print->r_k, T[i]);
+        mpz_mod(print->finger, print->finger, printer->p);
+    }
+    mpz_mul(print->r_k, print->r_k, printer->r);
+    mpz_mod(print->r_k, print->r_k, printer->p);
+
+    mpz_invert(print->r_mk, print->r_k, printer->p);
+}
+
+void fingerprint_suffix(mpz_t p, fingerprint uv, fingerprint u, fingerprint v) {
     mpz_mul(v->r_k, uv->r_k, u->r_mk);
     mpz_mod(v->r_k, v->r_k, p);
     mpz_invert(v->r_mk, v->r_k, p);
@@ -96,15 +91,9 @@ fingerprint fingerprint_suffix(mpz_t p, fingerprint uv, fingerprint u) {
     if (mpz_cmp_si(v->finger, 0) < 0) mpz_add(v->finger, v->finger, p);
     mpz_mul(v->finger, v->finger, u->r_mk);
     mpz_mod(v->finger, v->finger, p);
-    return v;
 }
 
-fingerprint fingerprint_prefix(mpz_t p, fingerprint uv, fingerprint v) {
-    fingerprint u = malloc(sizeof(struct fingerprint_t));
-    mpz_init(u->finger);
-    mpz_init(u->r_k);
-    mpz_init(u->r_mk);
-
+void fingerprint_prefix(mpz_t p, fingerprint uv, fingerprint v, fingerprint u) {
     mpz_mul(u->r_k, uv->r_k, v->r_mk);
     mpz_mod(u->r_k, u->r_k, p);
     mpz_invert(u->r_mk, u->r_k, p);
@@ -113,15 +102,9 @@ fingerprint fingerprint_prefix(mpz_t p, fingerprint uv, fingerprint v) {
     mpz_mod(u->finger, u->finger, p);
     mpz_sub(u->finger, uv->finger, u->finger);
     if (mpz_cmp_si(u->finger, 0) < 0) mpz_add(u->finger, u->finger, p);
-    return u;
 }
 
-fingerprint fingerprint_concat(mpz_t p, fingerprint u, fingerprint v) {
-    fingerprint uv = malloc(sizeof(struct fingerprint_t));
-    mpz_init(uv->finger);
-    mpz_init(uv->r_k);
-    mpz_init(uv->r_mk);
-
+void fingerprint_concat(mpz_t p, fingerprint u, fingerprint v, fingerprint uv) {
     mpz_mul(uv->r_k, u->r_k, v->r_k);
     mpz_mod(uv->r_k, uv->r_k, p);
     mpz_invert(uv->r_mk, uv->r_k, p);
@@ -130,7 +113,6 @@ fingerprint fingerprint_concat(mpz_t p, fingerprint u, fingerprint v) {
     mpz_mod(uv->finger, uv->finger, p);
     mpz_add(uv->finger, u->finger, uv->finger);
     if (compare(uv->finger, p) > 0) mpz_sub(uv->finger, uv->finger, p);
-    return uv;
 }
 
 int fingerprint_equals(fingerprint T_f, fingerprint P_f) {
