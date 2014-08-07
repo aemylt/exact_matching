@@ -4,28 +4,89 @@
 #include "karp_rabin.h"
 
 #include <gmp.h>
+#include <memory.h>
+#include <stdlib.h>
+
+typedef struct {
+    int location;
+    fingerprint T_f;
+} viable_occurance;
+
+typedef struct {
+    int row_size;
+    int end;
+    fingerprint P;
+    viable_occurance *VOs;
+} pattern_row;
 
 int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int* results) {
-    int lm = 0, i, j;
+    int lm = 0, i, j, matches = 0;
     while ((1 << lm) <= m) lm++;
+    lm++;
     fingerprinter printer = fingerprinter_build(n, alpha);
-    fingerprint tmp = init_fingerprint(), *P_i = malloc(lm * sizeof(fingerprint));
-    P_i[0] = init_fingerprint();
-    set_fingerprint(printer, P, 1, P_i[0]);
-    gmp_printf("%Zd, ", P_i[0]->finger);
+    fingerprint tmp = init_fingerprint(), T_f = init_fingerprint();
+    pattern_row *P_i = malloc(lm * sizeof(pattern_row));
+    P_i[0].P = init_fingerprint();
+    set_fingerprint(printer, P, 1, P_i[0].P);
+    P_i[0].row_size = 1;
+    P_i[0].end = 0;
+    P_i[0].VOs = malloc(2 * sizeof(viable_occurance));
+    P_i[0].VOs[0].T_f = init_fingerprint();
+    P_i[0].VOs[0].location = 0;
+    P_i[0].VOs[1].T_f = init_fingerprint();
+    P_i[0].VOs[1].location = 0;
     for (i = 1; i < lm - 1; i++) {
-        P_i[i] = init_fingerprint();
+        P_i[i].P = init_fingerprint();
         j = 1 << (i - 1);
         set_fingerprint(printer, &P[j], j, tmp);
-        fingerprint_concat(printer->p, P_i[i - 1], tmp, P_i[i]);
-        gmp_printf("%Zd, ", P_i[i]->finger);
+        fingerprint_concat(printer->p, P_i[i - 1].P, tmp, P_i[i].P);
+        P_i[i].row_size = j << 1;
+        P_i[i].end = 0;
+        P_i[i].VOs = malloc(P_i[i].row_size * sizeof(viable_occurance));
+        for (j = 0; j < P_i[i].row_size; j++) {
+            P_i[i].VOs[j].T_f = init_fingerprint();
+            P_i[i].VOs[j].location = 0;
+        }
     }
-    P_i[lm - 1] = init_fingerprint();
+    P_i[lm - 1].P = init_fingerprint();
     j = 1 << (lm - 2);
     set_fingerprint(printer, &P[j], m - j, tmp);
-    fingerprint_concat(printer->p, P_i[lm - 2], tmp, P_i[lm - 1]);
-    gmp_printf("%Zd\n", P_i[lm - 1]->finger);
-    return 0;
+    fingerprint_concat(printer->p, P_i[lm - 2].P, tmp, P_i[lm - 1].P);
+    P_i[lm - 1].row_size = 0;
+
+    for (i = 0; i < n; i++) {
+        j = lm - 2;
+        if ((P_i[j].end > 0) && (i - P_i[j].VOs[0].location == m - P_i[j].row_size)) {
+            //set_fingerprint(printer, &T[i - P_i[j].row_size + 1], P_i[j].row_size, tmp);
+            //fingerprint_concat(printer->p, P_i[j].VOs[0].T_f, tmp, T_f);
+            set_fingerprint(printer, &T[i - m + 1], m, T_f);
+            if (fingerprint_equals (P_i[j + 1].P, T_f)) results[matches++] = i + 1;
+            memmove(P_i[j].VOs, &P_i[j].VOs[1], ((P_i[j].row_size << 1) - 1) * sizeof(pattern_row));
+            P_i[j].end--;
+        }
+
+        for (j = lm - 3; j >= 0; j--) {
+            if ((P_i[j].end > 0) && (i - P_i[j].VOs[0].location == P_i[j].row_size)) {
+                //set_fingerprint(printer, &T[i - (P_i[j].row_size << 1) + 1], P_i[j].row_size, tmp);
+                //fingerprint_concat(printer->p, P_i[j].VOs[0].T_f, tmp, T_f);
+                set_fingerprint(printer, &T[i - (P_i[j].row_size << 1) + 1], P_i[j].row_size << 1, T_f);
+                if (fingerprint_equals (P_i[j + 1].P, T_f)) {
+                    P_i[j + 1].VOs[P_i[j + 1].end].T_f = T_f;
+                    P_i[j + 1].VOs[P_i[j + 1].end].location = i;
+                    P_i[j + 1].end++;
+                }
+                memmove(P_i[j].VOs, &P_i[j].VOs[1], ((P_i[j].row_size << 1) - 1) * sizeof(pattern_row));
+                P_i[j].end--;
+            }
+        }
+        set_fingerprint(printer, &T[i], 1, T_f);
+        if (fingerprint_equals (P_i[0].P, T_f)) {
+            P_i[0].VOs[P_i[0].end].T_f = T_f;
+            P_i[0].VOs[P_i[0].end].location = i;
+            P_i[0].end++;
+        }
+    }
+    return matches;
 }
 
 int fingerprint_match_naive(char* T, int n, char* P, int m, int alpha, int* results) {
