@@ -7,9 +7,9 @@ int fingerprint_match(char* T, int n, char* P, int m, int alpha, int* results) {
     int count = 0, i;
     fingerprinter printer = fingerprinter_build(n, alpha);
     fingerprint T_f, P_f, T_i, T_m, tmp;
+    int size = n - m;
     P_f = init_fingerprint();
     set_fingerprint(printer, P, m, P_f);
-    int size = n - m;
     T_f = init_fingerprint();
     set_fingerprint(printer, T, m, T_f);
     T_i = init_fingerprint();
@@ -24,6 +24,12 @@ int fingerprint_match(char* T, int n, char* P, int m, int alpha, int* results) {
         if (fingerprint_equals(T_f, P_f)) results[count++] = i + 1;
     }
     results = realloc(results, count * sizeof(int));
+    fingerprinter_free(printer);
+    fingerprint_free(T_f);
+    fingerprint_free(P_f);
+    fingerprint_free(T_i);
+    fingerprint_free(T_m);
+    fingerprint_free(tmp);
     return count;
 }
 

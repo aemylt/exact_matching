@@ -22,12 +22,11 @@ typedef struct fingerprinter_t {
 } *fingerprinter;
 
 fingerprinter fingerprinter_build(unsigned int n, unsigned int alpha) {
-    mpz_t p, num, r;
+    fingerprinter printer = malloc(sizeof(struct fingerprinter_t));
 
-    mpz_init(p);
-    mpz_init_set_ui(num, n);
-    mpz_pow_ui(num, num, 2 + alpha);
-    mpz_nextprime(p, num);
+    mpz_init_set_ui(printer->p, n);
+    mpz_pow_ui(printer->p, printer->p, 2 + alpha);
+    mpz_nextprime(printer->p, printer->p);
 
     gmp_randstate_t state;
     unsigned long seed;
@@ -41,14 +40,16 @@ fingerprinter fingerprinter_build(unsigned int n, unsigned int alpha) {
     gmp_randinit_mt(state);
     gmp_randseed_ui(state, seed);
 
-    mpz_init(r);
-    mpz_urandomm(r, state, p);
-
-    fingerprinter printer = malloc(sizeof(struct fingerprinter_t));
-    mpz_init_set(printer->p, p);
-    mpz_init_set(printer->r, r);
+    mpz_init(printer->r);
+    mpz_urandomm(printer->r, state, printer->p);
 
     return printer;
+}
+
+void fingerprinter_free(fingerprinter printer) {
+    mpz_clear(printer->p);
+    mpz_clear(printer->r);
+    free(printer);
 }
 
 typedef struct fingerprint_t {
@@ -117,6 +118,13 @@ void fingerprint_concat(mpz_t p, fingerprint u, fingerprint v, fingerprint uv) {
 
 int fingerprint_equals(fingerprint T_f, fingerprint P_f) {
     return (mpz_equals(T_f->r_k, P_f->r_k) && mpz_equals(T_f->r_mk, P_f->r_mk) && mpz_equals(T_f->finger, P_f->finger));
+}
+
+void fingerprint_free(fingerprint finger) {
+    mpz_clear(finger->finger);
+    mpz_clear(finger->r_k);
+    mpz_clear(finger->r_mk);
+    free(finger);
 }
 
 #endif
