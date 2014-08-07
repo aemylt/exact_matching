@@ -4,7 +4,6 @@
 #include "karp_rabin.h"
 
 #include <gmp.h>
-#include <memory.h>
 #include <stdlib.h>
 
 typedef struct {
