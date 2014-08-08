@@ -3,7 +3,6 @@
 
 #include "karp_rabin.h"
 
-#include <gmp.h>
 #include <stdlib.h>
 
 typedef struct {
@@ -59,11 +58,11 @@ int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int*
 
     for (i = 0; i < n; i++) {
         set_fingerprint(printer, &T[i], 1, T_cur);
-        fingerprint_concat(printer->p, T_prev, T_cur, tmp);
+        fingerprint_concat(printer, T_prev, T_cur, tmp);
 
         j = lm - 2;
         if ((P_i[j].end > 0) && (i - P_i[j].VOs[0].location == m - P_i[j].row_size)) {
-            fingerprint_suffix(printer->p, tmp, P_i[j].VOs[0].T_f, T_f);
+            fingerprint_suffix(printer, tmp, P_i[j].VOs[0].T_f, T_f);
 
             if (fingerprint_equals(P_i[j + 1].P, T_f)) results[matches++] = i + 1;
             shift_row(&P_i[j]);
@@ -71,7 +70,7 @@ int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int*
 
         for (j = lm - 3; j >= 0; j--) {
             if ((P_i[j].end > 0) && (i - P_i[j].VOs[0].location == P_i[j].row_size)) {
-                fingerprint_suffix(printer->p, tmp, P_i[j].VOs[0].T_f, T_f);
+                fingerprint_suffix(printer, tmp, P_i[j].VOs[0].T_f, T_f);
 
                 if (fingerprint_equals(P_i[j + 1].P, T_f)) {
                     fingerprint_assign(tmp, P_i[j + 1].VOs[P_i[j + 1].end].T_f);
@@ -115,8 +114,8 @@ int fingerprint_match_naive(char* T, int n, char* P, int m, int alpha, int* resu
     for (i = 0; i < size; i++) {
         set_fingerprint(printer, &T[i], 1, T_i);
         set_fingerprint(printer, &T[i + m], 1, T_m);
-        fingerprint_suffix(printer->p, T_f, T_i, tmp);
-        fingerprint_concat(printer->p, tmp, T_m, T_f);
+        fingerprint_suffix(printer, T_f, T_i, tmp);
+        fingerprint_concat(printer, tmp, T_m, T_f);
         if (fingerprint_equals(T_f, P_f)) results[count++] = i + 1;
     }
     results = realloc(results, count * sizeof(int));
