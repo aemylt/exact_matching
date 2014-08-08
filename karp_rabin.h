@@ -177,15 +177,15 @@ void fingerprint_assign(fingerprint from, fingerprint to) {
     Returns void:
         Value returned in v parameter
 */
-void fingerprint_suffix(mpz_t p, fingerprint uv, fingerprint u, fingerprint v) {
+void fingerprint_suffix(fingerprinter printer, fingerprint uv, fingerprint u, fingerprint v) {
     mpz_mul(v->r_k, uv->r_k, u->r_mk);
-    mpz_mod(v->r_k, v->r_k, p);
-    mpz_invert(v->r_mk, v->r_k, p);
+    mpz_mod(v->r_k, v->r_k, printer->p);
+    mpz_invert(v->r_mk, v->r_k, printer->p);
 
     mpz_sub(v->finger, uv->finger, u->finger);
-    if (mpz_cmp_si(v->finger, 0) < 0) mpz_add(v->finger, v->finger, p);
+    if (mpz_cmp_si(v->finger, 0) < 0) mpz_add(v->finger, v->finger, printer->p);
     mpz_mul(v->finger, v->finger, u->r_mk);
-    mpz_mod(v->finger, v->finger, p);
+    mpz_mod(v->finger, v->finger, printer->p);
 }
 
 /*
@@ -199,15 +199,15 @@ void fingerprint_suffix(mpz_t p, fingerprint uv, fingerprint u, fingerprint v) {
     Returns void:
         Value returned in u parameter
 */
-void fingerprint_prefix(mpz_t p, fingerprint uv, fingerprint v, fingerprint u) {
+void fingerprint_prefix(fingerprinter printer, fingerprint uv, fingerprint v, fingerprint u) {
     mpz_mul(u->r_k, uv->r_k, v->r_mk);
-    mpz_mod(u->r_k, u->r_k, p);
-    mpz_invert(u->r_mk, u->r_k, p);
+    mpz_mod(u->r_k, u->r_k, printer->p);
+    mpz_invert(u->r_mk, u->r_k, printer->p);
 
     mpz_mul(u->finger, v->finger, u->r_k);
-    mpz_mod(u->finger, u->finger, p);
+    mpz_mod(u->finger, u->finger, printer->p);
     mpz_sub(u->finger, uv->finger, u->finger);
-    if (mpz_cmp_si(u->finger, 0) < 0) mpz_add(u->finger, u->finger, p);
+    if (mpz_cmp_si(u->finger, 0) < 0) mpz_add(u->finger, u->finger, printer->p);
 }
 
 /*
@@ -221,15 +221,15 @@ void fingerprint_prefix(mpz_t p, fingerprint uv, fingerprint v, fingerprint u) {
     Returns void:
         Value returned in uv parameter
 */
-void fingerprint_concat(mpz_t p, fingerprint u, fingerprint v, fingerprint uv) {
+void fingerprint_concat(fingerprinter printer, fingerprint u, fingerprint v, fingerprint uv) {
     mpz_mul(uv->r_k, u->r_k, v->r_k);
-    mpz_mod(uv->r_k, uv->r_k, p);
-    mpz_invert(uv->r_mk, uv->r_k, p);
+    mpz_mod(uv->r_k, uv->r_k, printer->p);
+    mpz_invert(uv->r_mk, uv->r_k, printer->p);
 
     mpz_mul(uv->finger, v->finger, u->r_k);
-    mpz_mod(uv->finger, uv->finger, p);
+    mpz_mod(uv->finger, uv->finger, printer->p);
     mpz_add(uv->finger, u->finger, uv->finger);
-    if (compare(uv->finger, p) > 0) mpz_sub(uv->finger, uv->finger, p);
+    if (compare(uv->finger, printer->p) > 0) mpz_sub(uv->finger, uv->finger, printer->p);
 }
 
 /*

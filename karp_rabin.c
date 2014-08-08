@@ -20,31 +20,31 @@ int main(void) {
     set_fingerprint(printer, "aaaaa", 5, prefix);
 
     fingerprint v = init_fingerprint();
-    fingerprint_suffix(printer->p, print, prefix, v);
+    fingerprint_suffix(printer, print, prefix, v);
 
     fingerprint suffix = init_fingerprint();
     set_fingerprint(printer, "bbbbbcccccaaaaa", 15, suffix);
     assert(fingerprint_equals(v, suffix));
 
     fingerprint u = init_fingerprint();
-    fingerprint_prefix(printer->p, print, suffix, u);
+    fingerprint_prefix(printer, print, suffix, u);
     assert(fingerprint_equals(u, prefix));
 
     fingerprint uv = init_fingerprint();
-    fingerprint_concat(printer->p, prefix, suffix, uv);
+    fingerprint_concat(printer, prefix, suffix, uv);
     assert(fingerprint_equals(uv, print));
 
     fingerprint empty = init_fingerprint();
-    fingerprint_suffix(printer->p, print, empty, v);
+    fingerprint_suffix(printer, print, empty, v);
     assert(fingerprint_equals(v, print));
 
-    fingerprint_prefix(printer->p, print, empty, v);
+    fingerprint_prefix(printer, print, empty, v);
     assert(fingerprint_equals(v, print));
 
-    fingerprint_concat(printer->p, print, empty, v);
+    fingerprint_concat(printer, print, empty, v);
     assert(fingerprint_equals(v, print));
 
-    fingerprint_concat(printer->p, empty, print, v);
+    fingerprint_concat(printer, empty, print, v);
     assert(fingerprint_equals(v, print));
 
     fingerprint_free(print);
