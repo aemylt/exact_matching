@@ -44,6 +44,9 @@ int main(void) {
     fingerprint_concat(printer->p, print, empty, v);
     assert(fingerprint_equals(v, print));
 
+    fingerprint_concat(printer->p, empty, print, v);
+    assert(fingerprint_equals(v, print));
+
     fingerprint_free(print);
     fingerprint_free(prefix);
     fingerprint_free(suffix);
