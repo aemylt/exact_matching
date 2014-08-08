@@ -30,7 +30,6 @@ void shift_row(pattern_row *P_i) {
 int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int* results) {
     int lm = 0, i, j, matches = 0;
     while ((1 << lm) <= m) lm++;
-    lm++;
     fingerprinter printer = fingerprinter_build(n, alpha);
     fingerprint tmp = init_fingerprint(), T_f = init_fingerprint(), T_prev = init_fingerprint(), T_cur = init_fingerprint();
     pattern_row *P_i = malloc(lm * sizeof(pattern_row));
@@ -38,11 +37,9 @@ int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int*
     set_fingerprint(printer, P, 1, P_i[0].P);
     P_i[0].row_size = 1;
     P_i[0].end = 0;
-    P_i[0].VOs = malloc(2 * sizeof(viable_occurance));
+    P_i[0].VOs = malloc(sizeof(viable_occurance));
     P_i[0].VOs[0].T_f = init_fingerprint();
     P_i[0].VOs[0].location = 0;
-    P_i[0].VOs[1].T_f = init_fingerprint();
-    P_i[0].VOs[1].location = 0;
     for (i = 1; i < lm - 1; i++) {
         P_i[i].P = init_fingerprint();
         j = 1 << (i - 1);
@@ -93,6 +90,19 @@ int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int*
         }
         fingerprint_assign(tmp, T_prev);
     }
+
+    fingerprinter_free(printer);
+    fingerprint_free(tmp);
+    fingerprint_free(T_f);
+    for (i = 0; i < lm; i++) {
+        fingerprint_free(P_i[i].P);
+        for (j = 0; j < P_i[i].row_size; j++) {
+            fingerprint_free(P_i[i].VOs[j].T_f);
+        }
+        if (P_i[i].row_size) free(P_i[i].VOs);
+    }
+    free(P_i);
+
     return matches;
 }
 
