@@ -3,7 +3,6 @@
 
 #include "karp_rabin.h"
 
-#include <gmp.h>
 #include <stdlib.h>
 
 typedef struct {
@@ -44,7 +43,7 @@ int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int*
         P_i[i].P = init_fingerprint();
         j = 1 << (i - 1);
         set_fingerprint(printer, &P[j], j, tmp);
-        fingerprint_concat(printer->p, P_i[i - 1].P, tmp, P_i[i].P);
+        fingerprint_concat(printer, P_i[i - 1].P, tmp, P_i[i].P);
         P_i[i].row_size = j << 1;
         P_i[i].end = 0;
         P_i[i].VOs = malloc(P_i[i].row_size * sizeof(viable_occurance));
@@ -56,7 +55,7 @@ int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int*
     P_i[lm - 1].P = init_fingerprint();
     j = 1 << (lm - 2);
     set_fingerprint(printer, &P[j], m - j, tmp);
-    fingerprint_concat(printer->p, P_i[lm - 2].P, tmp, P_i[lm - 1].P);
+    fingerprint_concat(printer, P_i[lm - 2].P, tmp, P_i[lm - 1].P);
     P_i[lm - 1].row_size = 0;
 
     for (i = 0; i < n; i++) {
@@ -117,8 +116,8 @@ int fingerprint_match_naive(char* T, int n, char* P, int m, int alpha, int* resu
     for (i = 0; i < size; i++) {
         set_fingerprint(printer, &T[i], 1, T_i);
         set_fingerprint(printer, &T[i + m], 1, T_m);
-        fingerprint_suffix(printer->p, T_f, T_i, tmp);
-        fingerprint_concat(printer->p, tmp, T_m, T_f);
+        fingerprint_suffix(printer, T_f, T_i, tmp);
+        fingerprint_concat(printer, tmp, T_m, T_f);
         if (fingerprint_equals(T_f, P_f)) results[count++] = i + 1;
     }
     results = realloc(results, count * sizeof(int));
