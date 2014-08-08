@@ -61,8 +61,8 @@ typedef struct fingerprint_t {
 fingerprint init_fingerprint() {
     fingerprint finger = malloc(sizeof(struct fingerprint_t));
     mpz_init(finger->finger);
-    mpz_init(finger->r_k);
-    mpz_init(finger->r_mk);
+    mpz_init_set_ui(finger->r_k, 1);
+    mpz_init_set_ui(finger->r_mk, 1);
     return finger;
 }
 
