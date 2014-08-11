@@ -43,7 +43,6 @@ void add_occurance(fingerprinter printer, fingerprint T_f, int location, pattern
     P_i->count++;
 }
 
-
 int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int* results) {
     int lm = 0, i, j, matches = 0;
     while ((1 << lm) <= m) lm++;
