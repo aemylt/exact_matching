@@ -1,6 +1,6 @@
+#include "exact_matching.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "exact_matching.h"
 
 int main(void) {
     int n = 100, m = 20, i, *results = malloc((n - m + 1) * sizeof(int)), alpha = 0;
