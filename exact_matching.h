@@ -26,6 +26,12 @@ void shift_row(pattern_row *P_i) {
     P_i->end--;
 }
 
+void add_occurance(fingerprint T_f, int location, pattern_row *P_i) {
+    fingerprint_assign(T_f, P_i->VOs[P_i->end].T_f);
+    P_i->VOs[P_i->end].location = location;
+    P_i->end++;
+}
+
 int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int* results) {
     int lm = 0, i, j, matches = 0;
     while ((1 << lm) <= m) lm++;
@@ -73,17 +79,13 @@ int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int*
                 fingerprint_suffix(printer, tmp, P_i[j].VOs[0].T_f, T_f);
 
                 if (fingerprint_equals(P_i[j + 1].P, T_f)) {
-                    fingerprint_assign(tmp, P_i[j + 1].VOs[P_i[j + 1].end].T_f);
-                    P_i[j + 1].VOs[P_i[j + 1].end].location = i;
-                    P_i[j + 1].end++;
+                    add_occurance(tmp, i, &P_i[j + 1]);
                 }
                 shift_row(&P_i[j]);
             }
         }
         if (fingerprint_equals (P_i[0].P, T_cur)) {
-            fingerprint_assign(tmp, P_i[0].VOs[P_i[0].end].T_f);
-            P_i[0].VOs[P_i[0].end].location = i;
-            P_i[0].end++;
+            add_occurance(tmp, i, &P_i[0]);
         }
         fingerprint_assign(tmp, T_prev);
     }
