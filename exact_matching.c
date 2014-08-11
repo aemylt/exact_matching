@@ -12,7 +12,7 @@ int main(void) {
     printf("%d\n", results[count - 1]);
     results = realloc(results, (n - m + 1) * sizeof(int));
 
-    count = fingerprint_match_allcrosses(T, n, P, m, alpha, results);
+    count = fingerprint_match(T, n, P, m, alpha, results);
     for (i = 0; i < count - 1; i++) {
         printf("%d, ", results[i]);
     }
