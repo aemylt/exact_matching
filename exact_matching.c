@@ -16,6 +16,6 @@ int main(void) {
     for (i = 0; i < count - 1; i++) {
         printf("%d, ", results[i]);
     }
-    printf("%d\n", results[count - 1]);
+    if (count) printf("%d\n", results[count - 1]);
     return 0;
 }
