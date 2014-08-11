@@ -28,19 +28,24 @@ void shift_row(fingerprinter printer, pattern_row *P_i, fingerprint tmp) {
     P_i->count--;
 }
 
-void add_occurance(fingerprinter printer, fingerprint T_f, int location, pattern_row *P_i) {
+void add_occurance(fingerprinter printer, fingerprint T_f, int location, pattern_row *P_i, fingerprint tmp) {
     if (P_i->count < 2) {
         fingerprint_assign(T_f, P_i->VOs[P_i->count].T_f);
         P_i->VOs[P_i->count].location = location;
+        P_i->count++;
     } else {
         if (P_i->count == 2) {
             P_i->period = P_i->VOs[1].location - P_i->VOs[0].location;
             fingerprint_suffix(printer, P_i->VOs[1].T_f, P_i->VOs[0].T_f, P_i->period_f);
         }
-        fingerprint_assign(T_f, P_i->VOs[1].T_f);
-        P_i->VOs[1].location = location;
+        fingerprint_suffix(printer, T_f, P_i->VOs[1].T_f, tmp);
+        int period = location - P_i->VOs[1].location;
+        if ((period == P_i->period) && (fingerprint_equals(tmp, P_i->period_f))) {
+            fingerprint_assign(T_f, P_i->VOs[1].T_f);
+            P_i->VOs[1].location = location;
+            P_i->count++;
+        } else printf("Warning: Error in Period occured at location %d. VO discarded.\n", location);
     }
-    P_i->count++;
 }
 
 int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int* results) {
@@ -94,13 +99,13 @@ int fingerprint_match_allcrosses(char* T, int n, char* P, int m, int alpha, int*
                 fingerprint_suffix(printer, T_next, P_i[j].VOs[0].T_f, T_f);
 
                 if (fingerprint_equals(P_i[j + 1].P, T_f)) {
-                    add_occurance(printer, T_next, i, &P_i[j + 1]);
+                    add_occurance(printer, T_next, i, &P_i[j + 1], tmp);
                 }
                 shift_row(printer, &P_i[j], tmp);
             }
         }
         if (fingerprint_equals (P_i[0].P, T_cur)) {
-            add_occurance(printer, T_next, i, &P_i[0]);
+            add_occurance(printer, T_next, i, &P_i[0], tmp);
         }
         fingerprint_assign(T_next, T_prev);
     }
