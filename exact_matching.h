@@ -2,6 +2,7 @@
 #define EXACT_MATCHING
 
 #include "karp_rabin.h"
+#include "parameterised_matching/kmp.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -103,8 +104,10 @@ void add_occurance(fingerprinter printer, fingerprint T_f, int location, pattern
         Index of each match returned in results
 */
 int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
-    int lm = 0, i, j, matches = 0;
+    int lm = 0, f = 0, i, j, matches = 0;
     while ((1 << lm) <= m) lm++;
+    while ((1 << f <= lm)) f++;
+    kmp_state P_f = kmp_build(P, 1 << f);
     fingerprinter printer = fingerprinter_build(n, alpha);
     fingerprint T_next = init_fingerprint(), T_f = init_fingerprint(), T_prev = init_fingerprint(), T_cur = init_fingerprint(), tmp = init_fingerprint();
     pattern_row *P_i = malloc(lm * sizeof(pattern_row));
@@ -118,7 +121,7 @@ int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
     P_i[0].VOs[0].location = 0;
     P_i[0].VOs[1].T_f = init_fingerprint();
     P_i[0].VOs[1].location = 0;
-    for (i = 1; i < lm - 1; i++) {
+    for (i = f; i < lm - 1; i++) {
         j = 1 << (i - 1);
         P_i[i].row_size = j << 1;
         P_i[i].period = 0;
@@ -148,7 +151,7 @@ int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
             shift_row(printer, &P_i[j], tmp);
         }
 
-        for (j = lm - 3; j >= 0; j--) {
+        for (j = lm - 3; j >= f; j--) {
             if ((P_i[j].count > 0) && (i - P_i[j].VOs[0].location == P_i[j].row_size)) {
                 fingerprint_suffix(printer, T_next, P_i[j].VOs[0].T_f, T_f);
 
@@ -158,8 +161,8 @@ int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
                 shift_row(printer, &P_i[j], tmp);
             }
         }
-        if (fingerprint_equals (P_i[0].P, T_cur)) {
-            add_occurance(printer, T_next, i, &P_i[0], tmp);
+        if (kmp_stream(P_f, T[i], i) != -1) {
+            add_occurance(printer, T_next, i, &P_i[f], tmp);
         }
         fingerprint_assign(T_next, T_prev);
     }
@@ -170,7 +173,7 @@ int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
     fingerprint_free(T_prev);
     fingerprint_free(T_cur);
     fingerprint_free(tmp);
-    for (i = 0; i < lm - 1; i++) {
+    for (i = f; i < lm - 1; i++) {
         fingerprint_free(P_i[i].P);
         fingerprint_free(P_i[i].period_f);
         fingerprint_free(P_i[i].VOs[0].T_f);
