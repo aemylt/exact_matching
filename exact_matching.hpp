@@ -1,11 +1,14 @@
 #ifndef EXACT_MATCHING
 #define EXACT_MATCHING
 
-#include "karp_rabin.h"
-#include "parameterised_matching/kmp.h"
+#include "karp_rabin.hpp"
+#include "kmp.hpp"
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string>
+
+using namespace std;
 
 /*
     typedef struct viable_occurance
@@ -103,15 +106,15 @@ void add_occurance(fingerprinter printer, fingerprint T_f, int location, pattern
         Number of matches
         Index of each match returned in results
 */
-int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
+int fingerprint_match(string T, string P, int alpha, int *results) {
     int lm = 0, f = 0, i, j, matches = 0;
-    while ((1 << lm) <= m) lm++;
+    while ((1 << lm) <= (int)P.size()) lm++;
     while ((1 << f <= lm)) f++;
     lm -= f;
     kmp_state P_f = kmp_build(P, 1 << f);
-    fingerprinter printer = fingerprinter_build(n, alpha);
+    fingerprinter printer = fingerprinter_build(T.size(), alpha);
     fingerprint T_next = init_fingerprint(), T_f = init_fingerprint(), T_prev = init_fingerprint(), T_cur = init_fingerprint(), tmp = init_fingerprint();
-    pattern_row *P_i = malloc(lm * sizeof(pattern_row));
+    pattern_row *P_i = (pattern_row*)malloc(lm * sizeof(pattern_row));
     P_i[0].row_size = 1 << f;
     P_i[0].period = 0;
     P_i[0].count = 0;
@@ -135,15 +138,15 @@ int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
     }
     j = 1 << (lm - 2 + f);
     P_i[lm - 1].P = init_fingerprint();
-    set_fingerprint(printer, &P[j], m - j, P_i[lm - 1].P);
+    set_fingerprint(printer, &P[j], P.size() - j, P_i[lm - 1].P);
     P_i[lm - 1].row_size = 0;
 
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < (int)T.size(); i++) {
         set_fingerprint(printer, &T[i], 1, T_cur);
         fingerprint_concat(printer, T_prev, T_cur, T_next);
 
         j = lm - 2;
-        if ((P_i[j].count > 0) && (i - P_i[j].VOs[0].location == m - P_i[j].row_size)) {
+        if ((P_i[j].count > 0) && (i - P_i[j].VOs[0].location == (int)P.size() - P_i[j].row_size)) {
             fingerprint_suffix(printer, T_next, P_i[j].VOs[0].T_f, T_f);
 
             if (fingerprint_equals(P_i[j + 1].P, T_f)) results[matches++] = i + 1;
@@ -160,7 +163,7 @@ int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
                 shift_row(printer, &P_i[j], tmp);
             }
         }
-        if (kmp_stream(P_f, T[i], i) != -1) {
+        if (kmp_stream(&P_f, T[i], i) != -1) {
             add_occurance(printer, T_next, i, &P_i[0], tmp);
         }
         fingerprint_assign(T_next, T_prev);
@@ -183,27 +186,27 @@ int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
     }
     free(P_i);
 
-    results = realloc(results, matches * sizeof(int));
+    results = (int*)realloc(results, matches * sizeof(int));
 
     return matches;
 }
 
-int fingerprint_match_naive(char *T, int n, char *P, int m, int alpha, int *results) {
+int fingerprint_match_naive(string T, string P, int alpha, int *results) {
     int count = 0, i;
-    fingerprinter printer = fingerprinter_build(n, alpha);
+    fingerprinter printer = fingerprinter_build(T.size(), alpha);
     fingerprint T_f = init_fingerprint(), P_f = init_fingerprint(), T_i = init_fingerprint(), T_m = init_fingerprint(), tmp = init_fingerprint();
-    int size = n - m;
-    set_fingerprint(printer, P, m, P_f);
-    set_fingerprint(printer, T, m, T_f);
+    int size = T.size() - P.size();
+    set_fingerprint(printer, P, P.size(), P_f);
+    set_fingerprint(printer, T, P.size(), T_f);
     if (fingerprint_equals(T_f, P_f)) results[count++] = 0;
     for (i = 0; i < size; i++) {
         set_fingerprint(printer, &T[i], 1, T_i);
-        set_fingerprint(printer, &T[i + m], 1, T_m);
+        set_fingerprint(printer, &T[i + P.size()], 1, T_m);
         fingerprint_suffix(printer, T_f, T_i, tmp);
         fingerprint_concat(printer, tmp, T_m, T_f);
         if (fingerprint_equals(T_f, P_f)) results[count++] = i + 1;
     }
-    results = realloc(results, count * sizeof(int));
+    results = (int*)realloc(results, count * sizeof(int));
     fingerprinter_free(printer);
     fingerprint_free(T_f);
     fingerprint_free(P_f);

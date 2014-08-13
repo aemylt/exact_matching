@@ -5,6 +5,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string>
+
+using namespace std;
 
 /*
     inline int mpz_equals(mpz_t x, mpz_t y)
@@ -59,7 +62,7 @@ typedef struct fingerprinter_t {
         A fingerprinter for a text of this length
 */
 fingerprinter fingerprinter_build(unsigned int n, unsigned int alpha) {
-    fingerprinter printer = malloc(sizeof(struct fingerprinter_t));
+    fingerprinter printer = (fingerprinter)malloc(sizeof(struct fingerprinter_t));
 
     mpz_init_set_ui(printer->p, n);
     mpz_pow_ui(printer->p, printer->p, 2 + alpha);
@@ -116,7 +119,7 @@ typedef struct fingerprint_t {
         The new fingerprint
 */
 fingerprint init_fingerprint() {
-    fingerprint finger = malloc(sizeof(struct fingerprint_t));
+    fingerprint finger = (fingerprint)malloc(sizeof(struct fingerprint_t));
     mpz_init(finger->finger);
     mpz_init_set_ui(finger->r_k, 1);
     mpz_init_set_ui(finger->r_mk, 1);
@@ -134,9 +137,9 @@ fingerprint init_fingerprint() {
     Returns void:
         Value returned in print parameter
 */
-void set_fingerprint(fingerprinter printer, char* T, unsigned int l, fingerprint print) {
+void set_fingerprint(fingerprinter printer, string T, unsigned int l, fingerprint print) {
     mpz_set_ui(print->r_k, 1);
-    int i;
+    unsigned int i;
 
     mpz_set_ui(print->finger, T[0]);
 
