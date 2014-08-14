@@ -40,6 +40,12 @@ int main(void) {
     print.concat(printer, empty, v);
     assert(v == print);
 
+    print.prefix(printer, print, u);
+    assert(u == empty);
+
+    print.suffix(printer, print, v);
+    assert(v == empty);
+
     empty.concat(printer, print, v);
     assert(v == print);
 
