@@ -59,41 +59,31 @@ int fingerprint_match(string T, string P, int alpha, int *results) {
     int lm = 0, f = 0, i, j, matches = 0;
     while ((1 << lm) <= (int)P.size()) lm++;
     while ((1 << f <= lm)) f++;
-    lm -= f;
+    lm -= f + 1;
     kmp_stream P_f(P, 1 << f);
     fingerprinter printer(T.size(), alpha);
     fingerprint T_next, T_f, T_prev, T_cur, tmp;
     pattern_row *P_i = new pattern_row[lm];
-    P_i[0].row_size = 1 << f;
-    P_i[0].period = 0;
-    P_i[0].count = 0;
-    for (i = 1; i < lm - 1; i++) {
-        j = 1 << (i - 1 + f);
-        P_i[i].row_size = j << 1;
+    for (i = 0; i < lm - 1; i++) {
+        j = 1 << (i + f);
+        P_i[i].row_size = j;
         P_i[i].P.set(printer, &P[j], j);
     }
-    j = 1 << (lm - 2 + f);
+    j = 1 << (lm - 1 + f);
     P_i[lm - 1].P.set(printer, &P[j], P.size() - j);
-    P_i[lm - 1].row_size = 0;
+    P_i[lm - 1].row_size = (int)P.size() - (1 << (lm - 1 + f));
 
     for (i = 0; i < (int)T.size(); i++) {
         T_cur.set(printer, &T[i], 1);
         T_prev.concat(printer, T_cur, T_next);
 
-        j = lm - 2;
-        if ((P_i[j].count > 0) && (i - P_i[j].VOs[0].location == (int)P.size() - P_i[j].row_size)) {
-            T_next.suffix(printer, P_i[j].VOs[0].T_f, T_f);
-
-            if (P_i[j + 1].P == T_f) results[matches++] = i + 1;
-            shift_row(printer, P_i[j], tmp);
-        }
-
-        for (j = lm - 3; j >= 0; j--) {
+        for (j = lm - 1; j >= 0; j--) {
             if ((P_i[j].count > 0) && (i - P_i[j].VOs[0].location == P_i[j].row_size)) {
                 T_next.suffix(printer, P_i[j].VOs[0].T_f, T_f);
 
-                if (P_i[j + 1].P == T_f) {
-                    add_occurance(printer, T_next, i, P_i[j + 1], tmp);
+                if (P_i[j].P == T_f) {
+                    if (j == lm - 1) results[matches++] = i + 1;
+                    else add_occurance(printer, T_next, i, P_i[j + 1], tmp);
                 }
                 shift_row(printer, P_i[j], tmp);
             }
