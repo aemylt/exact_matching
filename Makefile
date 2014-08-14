@@ -1,5 +1,5 @@
 CC=g++
-CARGS=-Wall -O3
+CARGS=-Wall -O3 -std=c++11
 GMPLIB=-L/gmp_install/lib -lgmp
 
 all:

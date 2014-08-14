@@ -5,55 +5,43 @@
 
 int main(void) {
     int n = 100;
-    fingerprinter printer = fingerprinter_build(n, 0);
-    gmp_printf("p = %Zd\n", printer->p);
-    gmp_printf("r = %Zd\n", printer->r);
+    fingerprinter printer(n, 0);
+    gmp_printf("p = %Zd\n", printer.p);
+    gmp_printf("r = %Zd\n", printer.r);
 
-    fingerprint print = init_fingerprint();
-    set_fingerprint(printer, "aaaaabbbbbcccccaaaaa", 20, print);
+    fingerprint print;
+    print.set(printer, "aaaaabbbbbcccccaaaaa", 20);
 
-    gmp_printf("uv finger = %Zd\n", print->finger);
-    gmp_printf("uv r_k = %Zd\n", print->r_k);
-    gmp_printf("uv r_mk = %Zd\n", print->r_mk);
+    fingerprint prefix;
+    prefix.set(printer, "aaaaa", 5);
 
-    fingerprint prefix = init_fingerprint();
-    set_fingerprint(printer, "aaaaa", 5, prefix);
+    fingerprint v;
+    print.suffix(printer, prefix, v);
 
-    fingerprint v = init_fingerprint();
-    fingerprint_suffix(printer, print, prefix, v);
+    fingerprint suffix;
+    suffix.set(printer, "bbbbbcccccaaaaa", 15);
+    assert(v == suffix);
 
-    fingerprint suffix = init_fingerprint();
-    set_fingerprint(printer, "bbbbbcccccaaaaa", 15, suffix);
-    assert(fingerprint_equals(v, suffix));
+    fingerprint u;
+    print.prefix(printer, suffix, u);
+    assert(u == prefix);
 
-    fingerprint u = init_fingerprint();
-    fingerprint_prefix(printer, print, suffix, u);
-    assert(fingerprint_equals(u, prefix));
+    fingerprint uv;
+    prefix.concat(printer, suffix, uv);
+    assert(uv == print);
 
-    fingerprint uv = init_fingerprint();
-    fingerprint_concat(printer, prefix, suffix, uv);
-    assert(fingerprint_equals(uv, print));
+    fingerprint empty;
+    print.suffix(printer, empty, v);
+    assert(v == print);
 
-    fingerprint empty = init_fingerprint();
-    fingerprint_suffix(printer, print, empty, v);
-    assert(fingerprint_equals(v, print));
+    print.prefix(printer, empty, v);
+    assert(v == print);
 
-    fingerprint_prefix(printer, print, empty, v);
-    assert(fingerprint_equals(v, print));
+    print.concat(printer, empty, v);
+    assert(v == print);
 
-    fingerprint_concat(printer, print, empty, v);
-    assert(fingerprint_equals(v, print));
-
-    fingerprint_concat(printer, empty, print, v);
-    assert(fingerprint_equals(v, print));
-
-    fingerprint_free(print);
-    fingerprint_free(prefix);
-    fingerprint_free(suffix);
-    fingerprint_free(u);
-    fingerprint_free(v);
-    fingerprint_free(uv);
-    fingerprint_free(empty);
+    empty.concat(printer, print, v);
+    assert(v == print);
 
     return 0;
 }
