@@ -22,13 +22,13 @@ int main(void) {
     if (count) printf("%d\n", results[count - 1]);
     else printf("No matches.\n");
 
-
     P = "aaaaabbbbbcccccaaaaaaaaaabbbbbcccccddddd";
     count = fingerprint_match(T, P, alpha, results);
     for (i = 0; i < count - 1; i++) {
         printf("%d, ", results[i]);
     }
     if (count) printf("%d\n", results[count - 1]);
+    else printf("No matches.\n");
 
     T = "aaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaaabbbbbcccccaaaaaaaaaabbbbbcccccddddd";
     count = fingerprint_match(T, P, alpha, results);
@@ -36,6 +36,31 @@ int main(void) {
         printf("%d, ", results[i]);
     }
     if (count) printf("%d\n", results[count - 1]);
+    else printf("No matches.\n");
+
+    P = "aaaaabbbbbcccccaaaaaaaaaabbbbbcc";
+    count = fingerprint_match(T, P, alpha, results);
+    for (i = 0; i < count - 1; i++) {
+        printf("%d, ", results[i]);
+    }
+    if (count) printf("%d\n", results[count - 1]);
+    else printf("No matches.\n");
+
+    P = "aaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaa";
+    count = fingerprint_match(T, P, alpha, results);
+    for (i = 0; i < count - 1; i++) {
+        printf("%d, ", results[i]);
+    }
+    if (count) printf("%d\n", results[count - 1]);
+    else printf("No matches.\n");
+
+    T = "aaaaaaabbbbbcccccaaaaaaaaaabbbaaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaa";
+    count = fingerprint_match(T, P, alpha, results);
+    for (i = 0; i < count - 1; i++) {
+        printf("%d, ", results[i]);
+    }
+    if (count) printf("%d\n", results[count - 1]);
+    else printf("No matches.\n");
     return 0;
 
 }
