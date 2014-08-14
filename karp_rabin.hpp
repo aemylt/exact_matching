@@ -95,20 +95,22 @@ class fingerprint {
         }
 
         void set(fingerprinter& printer, string T, unsigned int l) {
-            mpz_set_ui(r_k, 1);
-            unsigned int i;
+            if (l) {
+                mpz_set_ui(r_k, 1);
+                unsigned int i;
 
-            mpz_set_ui(finger, T[0]);
+                mpz_set_ui(finger, T[0]);
 
-            for (i = 1; i < l; i++) {
+                for (i = 1; i < l; i++) {
+                    mpz_mul(r_k, r_k, printer.r);
+                    mpz_addmul_ui(finger, r_k, T[i]);
+                    mpz_mod(finger, finger, printer.p);
+                }
                 mpz_mul(r_k, r_k, printer.r);
-                mpz_addmul_ui(finger, r_k, T[i]);
-                mpz_mod(finger, finger, printer.p);
-            }
-            mpz_mul(r_k, r_k, printer.r);
-            mpz_mod(r_k, r_k, printer.p);
+                mpz_mod(r_k, r_k, printer.p);
 
-            mpz_invert(r_mk, r_k, printer.p);
+                mpz_invert(r_mk, r_k, printer.p);
+            }
         }
 
         fingerprint& operator = (fingerprint& from) {

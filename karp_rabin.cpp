@@ -43,5 +43,9 @@ int main(void) {
     empty.concat(printer, print, v);
     assert(v == print);
 
+    fingerprint nostring;
+    nostring.set(printer, "bbbbbcccccaaaaa", 0);
+    assert(nostring == empty);
+
     return 0;
 }
