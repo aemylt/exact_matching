@@ -94,7 +94,7 @@ int fingerprint_match(string T, string P, int alpha, int *results) {
         past_prints[(j) ? j - 1 : lm - 1].concat(printer, T_cur, tmp);
         past_prints[j] = tmp;
 
-        while ((P_i[j].count > 0) && (i - P_i[j].VOs[0].location >= P_i[j].row_size)) {
+        if ((P_i[j].count > 0) && (i - P_i[j].VOs[0].location >= P_i[j].row_size)) {
             T_cur = past_prints[(P_i[j].VOs[0].location + P_i[j].row_size) % lm];
             T_cur.suffix(printer, P_i[j].VOs[0].T_f, T_f);
 
@@ -111,7 +111,7 @@ int fingerprint_match(string T, string P, int alpha, int *results) {
     }
 
     while (j < lm) {
-        while ((P_i[j].count > 0) && (i - P_i[j].VOs[0].location >= P_i[j].row_size)) {
+        if ((P_i[j].count > 0) && (i - P_i[j].VOs[0].location >= P_i[j].row_size)) {
             T_cur = past_prints[(P_i[j].VOs[0].location + P_i[j].row_size) % lm];
             T_cur.suffix(printer, P_i[j].VOs[0].T_f, T_f);
 
@@ -128,25 +128,6 @@ int fingerprint_match(string T, string P, int alpha, int *results) {
     delete[] past_prints;
 
     return matches;
-}
-
-int fingerprint_match_naive(string T, string P, int alpha, int *results) {
-    int count = 0, i;
-    fingerprinter printer(T.size(), alpha);
-    fingerprint T_f, P_f, T_i, T_m, tmp;
-    int size = T.size() - P.size();
-    P_f.set(printer, P, P.size());
-    T_f.set(printer, T, P.size());
-    if (P_f == T_f) results[count++] = 0;
-    for (i = 0; i < size; i++) {
-        T_i.set(printer, &T[i], 1);
-        T_m.set(printer, &T[i + P.size()], 1);
-        T_f.suffix(printer, T_i, tmp);
-        tmp.concat(printer, T_m, T_f);
-        if (P_f == T_f) results[count++] = i + 1;
-    }
-    results = (int*)realloc(results, count * sizeof(int));
-    return count;
 }
 
 #endif
