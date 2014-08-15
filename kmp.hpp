@@ -17,23 +17,38 @@ class kmp_stream {
         int m;
         int index;
         int* failure;
+        int failure_index;
     public:
         kmp_stream(string Pattern, int P_len) {
             P = Pattern;
             m = P_len;
             index = 0;
             failure = (int*)malloc(m * sizeof(int));
-            int i = 0, j;
+            failure_index = 0;
+            int j;
             failure[0] = 0;
             for (j = 1; j < P_len; j++) {
-                while (i > 0 && Pattern[i] != Pattern[j]) i = failure[i];
-                if (Pattern[i] == Pattern[j]) i++;
-                failure[j] = (i) ? i - 1 : 0;
+                while (failure_index > 0 && Pattern[failure_index] != Pattern[j]) failure_index = failure[failure_index];
+                if (Pattern[failure_index] == Pattern[j]) failure_index++;
+                failure[j] = (failure_index == j) ? failure_index - 1 : failure_index;
             }
         }
 
         ~kmp_stream() {
             free(failure);
+        }
+
+        void update_pattern(char P_j) {
+            m++;
+            P += P_j;
+            failure = (int*)realloc(failure, m * sizeof(int));
+            while (failure_index > 0 && P[failure_index] != P_j) failure_index = failure[failure_index];
+            if (P[failure_index] == P_j) failure_index++;
+            failure[m - 1] = (failure_index == m - 1) ? failure_index - 1 : failure_index;
+        }
+
+        int get_failure(int i) {
+            return failure[i];
         }
 
         int kmp_match(char T_j, int j) {
