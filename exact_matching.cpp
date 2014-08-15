@@ -61,6 +61,33 @@ int main(void) {
     }
     if (count) printf("%d\n", results[count - 1]);
     else printf("No matches.\n");
+
+    T = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    P = "aaaaaaaaaaaaaaaaaaaa";
+    count = fingerprint_match(T, P, alpha, results);
+    for (i = 0; i < count - 1; i++) {
+        printf("%d, ", results[i]);
+    }
+    if (count) printf("%d\n", results[count - 1]);
+    else printf("No matches.\n");
+
+    T = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab";
+    P = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab";
+    count = fingerprint_match(T, P, alpha, results);
+    for (i = 0; i < count - 1; i++) {
+        printf("%d, ", results[i]);
+    }
+    if (count) printf("%d\n", results[count - 1]);
+    else printf("No matches.\n");
+
+    T = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabb";
+    P = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabb";
+    count = fingerprint_match(T, P, alpha, results);
+    for (i = 0; i < count - 1; i++) {
+        printf("%d, ", results[i]);
+    }
+    if (count) printf("%d\n", results[count - 1]);
+    else printf("No matches.\n");
     return 0;
 
 }

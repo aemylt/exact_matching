@@ -57,22 +57,34 @@ struct pattern_row {
 };
 
 int fingerprint_match(string T, string P, int alpha, int *results) {
-    int lm = 0, f = 0, i, j, matches = 0;
+    int lm = 0, f = 0, i = 0, j, matches = 0;
     while ((1 << lm) <= (int)P.size()) lm++;
     while ((1 << f <= lm)) f++;
     lm -= f + 1;
-    kmp_stream P_f(P, 1 << f);
+    j = 1 << f;
+    kmp_stream P_f(P, j);
+    while ((j < (int)P.size()) && (P_f.get_failure(j - 1) << 1 > j)) {
+        P_f.update_pattern(P[j]);
+        j++;
+    }
+
+    if (j == (int)P.size()) {
+        for (i = 0; i < (int)T.size(); i++) if (P_f.kmp_match(T[i], i) != -1) results[matches++] = i;
+        return matches;
+    }
+
     fingerprinter printer(T.size(), alpha);
     fingerprint T_f, T_cur, tmp;
     pattern_row *P_i = new pattern_row[lm];
-    j = 1 << f;
-    for (i = 0; i < lm - 1; i++) {
+    while (j << 2 < (int)P.size()) {
         P_i[i].row_size = j;
         P_i[i].P.set(printer, &P[j], j);
         j <<= 1;
+        i++;
     }
-    P_i[lm - 1].P.set(printer, &P[j], P.size() - j);
-    P_i[lm - 1].row_size = (int)P.size() - (1 << (lm - 1 + f));
+    P_i[i].P.set(printer, &P[j], P.size() - j);
+    P_i[i].row_size = (int)P.size() - j;
+    lm = i + 1;
 
     fingerprint *past_prints = new fingerprint[lm];
     j = 0;
@@ -87,9 +99,7 @@ int fingerprint_match(string T, string P, int alpha, int *results) {
             T_cur.suffix(printer, P_i[j].VOs[0].T_f, T_f);
 
             if (P_i[j].P == T_f) {
-                if (j == lm - 1) {
-                    results[matches++] = P_i[j].VOs[0].location + P_i[j].row_size + 1;
-                }
+                if (j == lm - 1) results[matches++] = P_i[j].VOs[0].location + P_i[j].row_size;
                 else P_i[j + 1].add_occurance(printer, T_cur, P_i[j].VOs[0].location + P_i[j].row_size, tmp);
             }
             P_i[j].shift_row(printer, tmp);
@@ -106,9 +116,7 @@ int fingerprint_match(string T, string P, int alpha, int *results) {
             T_cur.suffix(printer, P_i[j].VOs[0].T_f, T_f);
 
             if (P_i[j].P == T_f) {
-                if (j == lm - 1) {
-                    results[matches++] = P_i[j].VOs[0].location + P_i[j].row_size + 1;
-                }
+                if (j == lm - 1) results[matches++] = P_i[j].VOs[0].location + P_i[j].row_size;
                 else P_i[j + 1].add_occurance(printer, T_cur, P_i[j].VOs[0].location + P_i[j].row_size, tmp);
             }
             P_i[j].shift_row(printer, tmp);

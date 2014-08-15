@@ -26,7 +26,6 @@ void stream_test(string T, int n, string P, int m, int* correct) {
 void stream_failure_test(string P, int m, int correct) {
     kmp_stream state(P, m - 1);
     state.update_pattern(P[m - 1]);
-    printf("%d\n", state.get_failure(m - 1));
     assert(state.get_failure(m - 1) == correct);
 }
 
@@ -42,7 +41,19 @@ int main(void) {
     correct[19] = 19;
     correct[59] = 59;
     correct[99] = 99;
-    stream_failure_test("aaaaabbbbbcccccaaaaa", 20, 5);
+    stream_test("aaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaaabbbbbbbbbbaaaaaaaaaabbbbbcccccaaaaa", 100, "aaaaabbbbbcccccaaaaa", 20, correct);
+    correct = (int*)realloc(correct, 100 * sizeof(int));
+    for (int i = 19; i < 100; i++) {
+        correct[i] = i;
+    }
+    stream_test("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 100, "aaaaaaaaaaaaaaaaaaaa", 20, correct);
+    correct = (int*)realloc(correct, 94 * sizeof(int));
+    for (int i = 0; i < 94; i++) {
+        correct[i] = -1;
+    }
+    correct[9] = 9; correct[29] = 29; correct[37] = 37; correct[57] = 57; correct[77] = 77;
+    stream_test("aaaaaaabbbbbcccccaaaaaaaaaabbbaaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaa", 94, "aaaaabbb", 8, correct);
+    stream_failure_test("aaaaabbbbbcccccaaaaa", 20, 4);
     free(correct);
     printf("All tests succeeded!\n");
     return 0;
