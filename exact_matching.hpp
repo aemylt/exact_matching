@@ -63,7 +63,7 @@ int fingerprint_match(string T, string P, int alpha, int *results) {
     lm -= f + 1;
     j = 1 << f;
     kmp_stream P_f(P, j);
-    while ((j < (int)P.size()) && (P_f.get_failure(j - 1) << 1 > j)) {
+    while ((j < (int)P.size()) && ((P_f.get_failure(j - 1) + 1) << 1 >= j)) {
         P_f.update_pattern(P[j]);
         j++;
     }

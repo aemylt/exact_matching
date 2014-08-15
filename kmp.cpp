@@ -53,7 +53,8 @@ int main(void) {
     }
     correct[9] = 9; correct[29] = 29; correct[37] = 37; correct[57] = 57; correct[77] = 77;
     stream_test("aaaaaaabbbbbcccccaaaaaaaaaabbbaaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaa", 94, "aaaaabbb", 8, correct);
-    stream_failure_test("aaaaabbbbbcccccaaaaa", 20, 4);
+    stream_failure_test("aaaaabbbbbcccccaaaaaaaaaabbbbbcccccaaaaaaaaaaa", 46, 4);
+    stream_failure_test("aaaaabbbbbcccccaaaaaaaaaabbbbbcccccaaaaaaaaaa", 45, 24);
     free(correct);
     printf("All tests succeeded!\n");
     return 0;
