@@ -21,39 +21,40 @@ struct pattern_row {
     fingerprint P, period_f;
     viable_occurance VOs[2];
     pattern_row() : row_size(0), period(0), count(0), P(), period_f() { }
-};
 
-void shift_row(fingerprinter& printer, pattern_row& P_i, fingerprint& tmp) {
-    if (P_i.count <= 2) {
-        P_i.VOs[0].T_f = P_i.VOs[1].T_f;
-        P_i.VOs[0].location = P_i.VOs[1].location;
-    } else {
-        P_i.VOs[0].T_f.concat(printer, P_i.period_f, tmp);
-        P_i.VOs[0].T_f = tmp;
-        P_i.VOs[0].location += P_i.period;
-    }
-    P_i.count--;
-}
-
-void add_occurance(fingerprinter& printer, fingerprint& T_f, int location, pattern_row& P_i, fingerprint& tmp) {
-    if (P_i.count < 2) {
-        P_i.VOs[P_i.count].T_f = T_f;
-        P_i.VOs[P_i.count].location = location;
-        P_i.count++;
-    } else {
-        if (P_i.count == 2) {
-            P_i.period = P_i.VOs[1].location - P_i.VOs[0].location;
-            P_i.VOs[1].T_f.suffix(printer, P_i.VOs[0].T_f, P_i.period_f);
+    void shift_row(fingerprinter& printer, fingerprint& tmp) {
+        if (count <= 2) {
+            VOs[0].T_f = VOs[1].T_f;
+            VOs[0].location = VOs[1].location;
+        } else {
+            VOs[0].T_f.concat(printer, period_f, tmp);
+            VOs[0].T_f = tmp;
+            VOs[0].location += period;
         }
-        T_f.suffix(printer, P_i.VOs[1].T_f, tmp);
-        int period = location - P_i.VOs[1].location;
-        if ((period == P_i.period) && (P_i.period_f == tmp)) {
-            P_i.VOs[1].T_f = T_f;
-            P_i.VOs[1].location = location;
-            P_i.count++;
-        } else printf("Warning: Error in Period occured at location %d. VO discarded.\n", location);
+        count--;
     }
-}
+
+    void add_occurance(fingerprinter& printer, fingerprint& T_f, int location, fingerprint& tmp) {
+        if (count < 2) {
+            VOs[count].T_f = T_f;
+            VOs[count].location = location;
+            count++;
+        } else {
+            if (count == 2) {
+                period = VOs[1].location - VOs[0].location;
+                VOs[1].T_f.suffix(printer, VOs[0].T_f, period_f);
+            }
+            T_f.suffix(printer, VOs[1].T_f, tmp);
+            int period = location - VOs[1].location;
+            if ((period == period) && (period_f == tmp)) {
+                VOs[1].T_f = T_f;
+                VOs[1].location = location;
+                count++;
+            } else printf("Warning: Error in Period occured at location %d. VO discarded.\n", location);
+        }
+    }
+
+};
 
 int fingerprint_match(string T, string P, int alpha, int *results) {
     int lm = 0, f = 0, i, j, matches = 0;
@@ -89,12 +90,12 @@ int fingerprint_match(string T, string P, int alpha, int *results) {
                 if (j == lm - 1) {
                     results[matches++] = P_i[j].VOs[0].location + P_i[j].row_size + 1;
                 }
-                else add_occurance(printer, T_cur, P_i[j].VOs[0].location + P_i[j].row_size, P_i[j + 1], tmp);
+                else P_i[j + 1].add_occurance(printer, T_cur, P_i[j].VOs[0].location + P_i[j].row_size, tmp);
             }
-            shift_row(printer, P_i[j], tmp);
+            P_i[j].shift_row(printer, tmp);
         }
         if (P_f.kmp_match(T[i], i) != -1) {
-            add_occurance(printer, past_prints[j], i, P_i[0], tmp);
+            P_i[0].add_occurance(printer, past_prints[j], i, tmp);
         }
         if (++j == lm) j = 0;
     }
@@ -108,9 +109,9 @@ int fingerprint_match(string T, string P, int alpha, int *results) {
                 if (j == lm - 1) {
                     results[matches++] = P_i[j].VOs[0].location + P_i[j].row_size + 1;
                 }
-                else add_occurance(printer, T_cur, P_i[j].VOs[0].location + P_i[j].row_size, P_i[j + 1], tmp);
+                else P_i[j + 1].add_occurance(printer, T_cur, P_i[j].VOs[0].location + P_i[j].row_size, tmp);
             }
-            shift_row(printer, P_i[j], tmp);
+            P_i[j].shift_row(printer, tmp);
         }
         j++;
     }
