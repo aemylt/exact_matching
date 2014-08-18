@@ -110,9 +110,9 @@ int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
     lm -= f + 1;
     j = 1 << f;
     kmp_state P_f = kmp_build(P, j, m);
-    j = P_f->m;
+    j = P_f.m;
     if (j == m) {
-        for (i = 0; i < n; i++) if (kmp_stream(P_f, T[i], i) != -1) results[matches++] = i;
+        for (i = 0; i < n; i++) if (kmp_stream(&P_f, T[i], i) != -1) results[matches++] = i;
         return matches;
     }
 
@@ -167,10 +167,24 @@ int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
             }
             shift_row(printer, &P_i[j], tmp);
         }
-        if (kmp_stream(P_f, T[i], i) != -1) {
+        if (kmp_stream(&P_f, T[i], i) != -1) {
             add_occurance(printer, past_prints[j], i, &P_i[0], tmp);
         }
         if (++j == lm) j = 0;
+    }
+
+    while (j < lm) {
+        if ((P_i[j].count > 0) && (i - P_i[j].VOs[0].location >= P_i[j].row_size)) {
+            fingerprint_assign(past_prints[(P_i[j].VOs[0].location + P_i[j].row_size) % lm], T_cur);
+            fingerprint_suffix(printer, T_cur, P_i[j].VOs[0].T_f, T_f);
+
+            if (fingerprint_equals(P_i[j].P, T_f)) {
+                if (j == lm - 1) results[matches++] = P_i[j].VOs[0].location + P_i[j].row_size;
+                else add_occurance(printer, T_cur, P_i[j].VOs[0].location + P_i[j].row_size, &P_i[j + 1], tmp);
+            }
+            shift_row(printer, &P_i[j], tmp);
+        }
+        j++;
     }
 
     fingerprinter_free(printer);
@@ -186,31 +200,6 @@ int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
     free(P_i);
 
     return matches;
-}
-
-int fingerprint_match_naive(char *T, int n, char *P, int m, int alpha, int *results) {
-    int count = 0, i;
-    fingerprinter printer = fingerprinter_build(n, alpha);
-    fingerprint T_f = init_fingerprint(), P_f = init_fingerprint(), T_i = init_fingerprint(), T_m = init_fingerprint(), tmp = init_fingerprint();
-    int size = n - m;
-    set_fingerprint(printer, P, m, P_f);
-    set_fingerprint(printer, T, m, T_f);
-    if (fingerprint_equals(T_f, P_f)) results[count++] = 0;
-    for (i = 0; i < size; i++) {
-        set_fingerprint(printer, &T[i], 1, T_i);
-        set_fingerprint(printer, &T[i + m], 1, T_m);
-        fingerprint_suffix(printer, T_f, T_i, tmp);
-        fingerprint_concat(printer, tmp, T_m, T_f);
-        if (fingerprint_equals(T_f, P_f)) results[count++] = i + 1;
-    }
-    results = realloc(results, count * sizeof(int));
-    fingerprinter_free(printer);
-    fingerprint_free(T_f);
-    fingerprint_free(P_f);
-    fingerprint_free(T_i);
-    fingerprint_free(T_m);
-    fingerprint_free(tmp);
-    return count;
 }
 
 #endif

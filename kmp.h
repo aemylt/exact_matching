@@ -8,6 +8,7 @@
 #ifndef KMP
 #define KMP
 #include <stdlib.h>
+#include <stdio.h>
 
 /*
     typedef struct kmp_state_t *kmp_state
@@ -18,12 +19,28 @@
         int   i       - Current index of pattern
         int*  failure - Failure table for pattern
 */
-typedef struct kmp_state_t {
+typedef struct {
     char* P;
     int m;
     int i;
     int* failure;
-} *kmp_state;
+    int period_len;
+    char period_break;
+    int break_failure;
+    int has_break;
+} kmp_state;
+
+char get_P_i(kmp_state state, int i) {
+    if (i < state.period_len) return state.P[i];
+    if ((i == state.m - 1) && (state.has_break)) return state.period_break;
+    return state.P[i % state.period_len];
+}
+
+int get_failure_i(kmp_state state, int i) {
+    if (i < state.period_len) return state.failure[i];
+    if ((i == state.m - 1) && (state.has_break)) return state.break_failure;
+    return state.failure[state.period_len - 1] + i - state.period_len + 1;
+}
 
 /*
     kmp_state kmp_build(char* P, int m)
@@ -35,24 +52,40 @@ typedef struct kmp_state_t {
         An initial KMP state for the pattern, where i = j = 0
 */
 kmp_state kmp_build(char* P, int m, int p_len) {
-    kmp_state state = malloc(sizeof(struct kmp_state_t));
-    state->P = P;
-    state->i = -1;
-    state->failure = malloc(p_len * sizeof(int));
-    int i = -1, j;
-    state->failure[0] = -1;
+    int i, j;
+    kmp_state state;
+    state.period_len = m;
+    state.has_break = 0;
+
+    state.P = malloc(m * sizeof(char));
+    for (i = 0; i < m; i++) state.P[i] = P[i];
+    state.m = m;
+
+    state.i = -1;
+    state.failure = malloc(m * sizeof(int));
+    state.failure[0] = -1;
+    i = -1;
     for (j = 1; j < m; j++) {
-        while (i > -1 && P[i + 1] != P[j]) i = state->failure[i];
+        while (i > -1 && P[i + 1] != P[j]) i = state.failure[i];
         if (P[i + 1] == P[j]) i++;
-        state->failure[j] = i;
+        state.failure[j] = i;
     }
-    while ((m < p_len) && (((state->failure[m - 1] + 1) << 1) >= m)) {
-        m++;
-        while (i > -1 && P[i + 1] != P[m - 1]) i = state->failure[i];
-        if (P[i + 1] == P[m - 1]) i++;
-        state->failure[m - 1] = i;
+
+    if (((state.failure[m - 1] + 1) << 1) >= m) {
+        state.period_len = (m - state.failure[m - 1]) << 1;
+        state.P = realloc(state.P, state.period_len * sizeof(char));
+        state.failure = realloc(state.failure, state.period_len * sizeof(int));
+        while ((state.m < p_len) && (((get_failure_i(state, state.m - 1) + 1) << 1) >= state.m)) {
+            state.m++;
+            while (i > -1 && P[i + 1] != P[state.m - 1]) i = get_failure_i(state, i);
+            if (P[i + 1] == P[state.m - 1]) i++;
+            if (((i + 1) << 1) < state.m) {
+                state.has_break = 1;
+                state.period_break = P[state.m - 1];
+                state.break_failure = i;
+            }
+        }
     }
-    state->m = m;
     return state;
 }
 
@@ -68,15 +101,13 @@ kmp_state kmp_build(char* P, int m, int p_len) {
         -1 otherwise
         state parameter is modified by reference
 */
-int kmp_stream(kmp_state state, char T_j, int j) {
-    char* P = state->P;
+int kmp_stream(kmp_state *state, char T_j, int j) {
     int i = state->i, result = -1;
-    int* failure = state->failure;
-    while (i > -1 && P[i + 1] != T_j) i = failure[i];
-    if (P[i + 1] == T_j) i++;
+    while (i > -1 && get_P_i(*state, i + 1) != T_j) i = get_failure_i(*state, i);
+    if (get_P_i(*state, i + 1) == T_j) i++;
     if (i == state->m - 1) {
         result = j;
-        i = failure[i];
+        i = get_failure_i(*state, i);
     }
     state->i = i;
     return result;
