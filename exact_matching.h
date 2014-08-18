@@ -104,25 +104,17 @@ void add_occurance(fingerprinter printer, fingerprint T_f, int location, pattern
         Index of each match returned in results
 */
 int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
-    int lm = 0, f = 0, i, j, matches = 0;
+    int lm = 0, f = 0, i = 0, j, matches = 0;
     while ((1 << lm) <= m) lm++;
     while ((1 << f <= lm)) f++;
-    lm -= f;
-    kmp_state P_f = kmp_build(P, 1 << f);
+    lm -= f + 1;
+    j = 1 << f;
+    kmp_state P_f = kmp_build(P, j);
     fingerprinter printer = fingerprinter_build(n, alpha);
     fingerprint T_next = init_fingerprint(), T_f = init_fingerprint(), T_prev = init_fingerprint(), T_cur = init_fingerprint(), tmp = init_fingerprint();
     pattern_row *P_i = malloc(lm * sizeof(pattern_row));
-    P_i[0].row_size = 1 << f;
-    P_i[0].period = 0;
-    P_i[0].count = 0;
-    P_i[0].period_f = init_fingerprint();
-    P_i[0].VOs[0].T_f = init_fingerprint();
-    P_i[0].VOs[0].location = 0;
-    P_i[0].VOs[1].T_f = init_fingerprint();
-    P_i[0].VOs[1].location = 0;
-    for (i = 1; i < lm - 1; i++) {
-        j = 1 << (i - 1 + f);
-        P_i[i].row_size = j << 1;
+    while (j << 2 < m) {
+        P_i[i].row_size = j;
         P_i[i].period = 0;
         P_i[i].count = 0;
         P_i[i].P = init_fingerprint();
@@ -132,30 +124,35 @@ int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
         P_i[i].VOs[0].location = 0;
         P_i[i].VOs[1].T_f = init_fingerprint();
         P_i[i].VOs[1].location = 0;
+        j <<= 1;
+        i++;
     }
-    j = 1 << (lm - 2 + f);
-    P_i[lm - 1].P = init_fingerprint();
-    set_fingerprint(printer, &P[j], m - j, P_i[lm - 1].P);
-    P_i[lm - 1].row_size = 0;
+    P_i[i].period = 0;
+    P_i[i].count = 0;
+    P_i[i].P = init_fingerprint();
+    set_fingerprint(printer, &P[j], m - j, P_i[i].P);
+    P_i[i].period_f = init_fingerprint();
+    P_i[i].VOs[0].T_f = init_fingerprint();
+    P_i[i].VOs[0].location = 0;
+    P_i[i].VOs[1].T_f = init_fingerprint();
+    P_i[i].VOs[1].location = 0;
+    P_i[i].row_size = m - j;
+
+    lm = i + 1;
+
+    P_i = realloc(P_i, lm * sizeof(pattern_row));
 
     for (i = 0; i < n; i++) {
         set_fingerprint(printer, &T[i], 1, T_cur);
         fingerprint_concat(printer, T_prev, T_cur, T_next);
 
-        j = lm - 2;
-        if ((P_i[j].count > 0) && (i - P_i[j].VOs[0].location == m - P_i[j].row_size)) {
-            fingerprint_suffix(printer, T_next, P_i[j].VOs[0].T_f, T_f);
-
-            if (fingerprint_equals(P_i[j + 1].P, T_f)) results[matches++] = i + 1;
-            shift_row(printer, &P_i[j], tmp);
-        }
-
-        for (j = lm - 3; j >= 0; j--) {
+        for (j = lm - 1; j >= 0; j--) {
             if ((P_i[j].count > 0) && (i - P_i[j].VOs[0].location == P_i[j].row_size)) {
                 fingerprint_suffix(printer, T_next, P_i[j].VOs[0].T_f, T_f);
 
-                if (fingerprint_equals(P_i[j + 1].P, T_f)) {
-                    add_occurance(printer, T_next, i, &P_i[j + 1], tmp);
+                if (fingerprint_equals(P_i[j].P, T_f)) {
+                    if (j == lm - 1) results[matches++] = i;
+                    else add_occurance(printer, T_next, i, &P_i[j + 1], tmp);
                 }
                 shift_row(printer, &P_i[j], tmp);
             }
