@@ -41,14 +41,22 @@ inline int compare(mpz_t x, mpz_t y) {
 }
 
 /*
-    typedef struct fingerprinter_t *fingerprinter
+    struct fingerprinter
     Structure to hold fingerprint maker.
-    Components:
+    Public components:
         mpz_t p - Prime number
         mpz_t r - Random number
 */
 struct fingerprinter {
         mpz_t p,r;
+
+/*
+    fingerprinter::fingerprinter(unsigned int n, unsigned int alpha)
+    Constructs a fingerprinter.
+    Parameters:
+        unsigned int n     - Length of the pattern
+        unsigned int alpha - Accuracy wanted
+*/
         fingerprinter(unsigned int n, unsigned int alpha) {
             mpz_init_set_ui(p, n);
             mpz_pow_ui(p, p, 2 + alpha);
@@ -70,30 +78,58 @@ struct fingerprinter {
             mpz_urandomm(r, state, p);
         }
 
+/*
+    fingerprinter::~fingerprinter()
+    Destroys a fingerprinter.
+*/
         ~fingerprinter() {
             mpz_clear(p);
             mpz_clear(r);
         }
 };
 
+/*
+    class fingerprint
+    Structure for each fingerprint.
+    Private components:
+        mpz_t r_k    - r^k
+        mpz_t r_mk   - r^-k
+        mpz_t finger - The actual fingerprint value
+*/
 class fingerprint {
         mpz_t r_k;
         mpz_t r_mk;
         mpz_t finger;
 
     public:
+/*
+    fingerprint::fingerprint()
+    Default constructor.
+*/
         fingerprint() {
             mpz_init(finger);
             mpz_init_set_ui(r_k, 1);
             mpz_init_set_ui(r_mk, 1);
         }
 
+/*
+    fingerprint::~fingerprint()
+    Default destructor.
+*/
         ~fingerprint() {
             mpz_clear(finger);
             mpz_clear(r_k);
             mpz_clear(r_mk);
         }
 
+/*
+    fingerprint::set(fingerprinter& printer, string T, unsigned int l)
+    Sets the fingerprint to the fingerprint of T.
+    Parameters:
+        fingerprinter printer - The fingerprinter to use
+        string        T       - The text
+        unsigned int  l       - The length of the text
+*/
         void set(fingerprinter& printer, string T, unsigned int l) {
             if (l) {
                 mpz_set_ui(r_k, 1);
@@ -113,6 +149,13 @@ class fingerprint {
             }
         }
 
+/*
+    fingerprint::fingerprint& operator = (fingerprint& from)
+    Assignment operation.
+    Parameters:
+        fingerprint from - Original fingerprint
+    Returns fingerprint
+*/
         fingerprint& operator = (fingerprint& from) {
             mpz_set(finger, from.finger);
             mpz_set(r_k, from.r_k);
@@ -120,6 +163,16 @@ class fingerprint {
             return *this;
         }
 
+/*
+    fingerprint::void suffix(fingerprinter& printer, fingerprint& u, fingerprint& v)
+    Removes prefix u from the start of this fingerprint.
+    Parameters:
+        fingerprinter printer - The fingerprinter
+        fingerprint   u       - The prefix
+        fingerprint   v       - The resulting suffix
+    Returns void:
+        Value returned by reference in parameter v.
+*/
         void suffix(fingerprinter& printer, fingerprint& u, fingerprint& v) {
             mpz_mul(v.r_k, r_k, u.r_mk);
             mpz_mod(v.r_k, v.r_k, printer.p);
@@ -131,6 +184,16 @@ class fingerprint {
             mpz_mod(v.finger, v.finger, printer.p);
         }
 
+/*
+    fingerprint::void prefix(fingerprinter& printer, fingerprint& v, fingerprint& u)
+    Removes suffix v from the end of this fingerprint.
+    Parameters:
+        fingerprinter printer - The fingerprinter
+        fingerprint   v       - The suffix
+        fingerprint   u       - The resulting suffix
+    Returns void:
+        Value returned by reference in parameter u.
+*/
         void prefix(fingerprinter& printer, fingerprint& v, fingerprint& u) {
             mpz_mul(u.r_k, r_k, v.r_mk);
             mpz_mod(u.r_k, u.r_k, printer.p);
@@ -142,6 +205,16 @@ class fingerprint {
             if (mpz_cmp_si(u.finger, 0) < 0) mpz_add(u.finger, u.finger, printer.p);
         }
 
+/*
+    fingerprint::void concat(fingerprinter& printer, fingerprint& v, fingerprint& uv)
+    Appends suffix v to the end of this fingerprint.
+    Parameters:
+        fingerprinter printer - The fingerprinter
+        fingerprint   v       - The suffix
+        fingerprint   uv      - The resulting fingerprint
+    Returns void:
+        Value returned by reference in parameter uv.
+*/
         void concat(fingerprinter& printer, fingerprint& v, fingerprint& uv) {
             mpz_mul(uv.r_k, r_k, v.r_k);
             mpz_mod(uv.r_k, uv.r_k, printer.p);
@@ -153,6 +226,15 @@ class fingerprint {
             if (compare(uv.finger, printer.p) > 0) mpz_sub(uv.finger, uv.finger, printer.p);
         }
 
+/*
+    fingerprint::bool operator == (fingerprint& P_f)
+    Checks if the two fingerprints are equal.
+    Parameters:
+        fingerprint P_f - The fingerprint to compare
+    Returns bool:
+        true if this == P_f
+        false otherwise
+*/
         bool operator == (fingerprint& P_f) {
             return (mpz_equals(r_k, P_f.r_k) && mpz_equals(r_mk, P_f.r_mk) && mpz_equals(finger, P_f.finger));
         }
