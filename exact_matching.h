@@ -2,7 +2,7 @@
 #define EXACT_MATCHING
 
 #include "karp_rabin.h"
-#include "parameterised_matching/kmp.h"
+#include "kmp.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -109,7 +109,13 @@ int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
     while ((1 << f <= lm)) f++;
     lm -= f + 1;
     j = 1 << f;
-    kmp_state P_f = kmp_build(P, j);
+    kmp_state P_f = kmp_build(P, j, m);
+    j = P_f->m;
+    if (j == m) {
+        for (i = 0; i < n; i++) if (kmp_stream(P_f, T[i], i) != -1) results[matches++] = i;
+        return matches;
+    }
+
     fingerprinter printer = fingerprinter_build(n, alpha);
     fingerprint T_f = init_fingerprint(), T_cur = init_fingerprint(), tmp = init_fingerprint();
     pattern_row *P_i = malloc(lm * sizeof(pattern_row));
