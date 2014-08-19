@@ -11,6 +11,18 @@ int check_results(int* correct, int* result, int size) {
     return 1;
 }
 
+void stream_test(char *T, int n, char *P, int m, int* correct, int num_correct) {
+    int i, counter = 0;
+    fmatch_state state = fmatch_build(P, m, n, 0);
+    for (i = 0; i < n; i++) {
+        int derp = fmatch_stream(&state, T[i]);
+        if ((counter < num_correct) && (i == correct[counter])) assert(derp == correct[counter++]);
+        else assert(derp == -1);
+    }
+
+    fmatch_free(&state);
+}
+
 int main(void) {
     char *T = "aaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaaabbbbbbbbbbaaaaaaaaaabbbbbcccccaaaaa", *P = "aaaaabbbbbcccccaaaaa";
     int i, *results = (int*)malloc(81 * sizeof(int)), alpha = 0, *correct = (int*)malloc(81 * sizeof(int)), correct_len;
@@ -76,6 +88,20 @@ int main(void) {
     correct_len = 1;
     results_len = fingerprint_match(T, 93, P, 64, alpha, results);
     test_check(correct, correct_len, results, results_len);
+
+    T = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab";
+    P = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab";
+    correct[0] = 63; correct[1] = 199;
+    stream_test(T, 200, P, 64, correct, 2);
+
+    T = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabb";
+    P = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabb";
+    stream_test(T, 200, P, 64, correct, 2);
+
+    T = "aaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaaabbbbbcccccaaaaaaaaaabbbbbcccccddddd";
+    P = "aaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaa";
+    correct[0] = 63;
+    stream_test(T, 100, P, 64, correct, 1);
 
     free(results);
     free(correct);

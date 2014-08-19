@@ -108,11 +108,11 @@ int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
     while ((1 << lm) <= m) lm++;
     while ((1 << f <= lm)) f++;
     lm -= f + 1;
-    j = 1 << f;
-    kmp_state P_f = kmp_build(P, j, m);
+    kmp_state P_f = kmp_build(P, 1 << f, m);
     j = P_f.m;
     if (j == m) {
         for (i = 0; i < n; i++) if (kmp_stream(&P_f, T[i], i) != -1) results[matches++] = i;
+        kmp_free(&P_f);
         return matches;
     }
 
@@ -198,8 +198,127 @@ int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
         fingerprint_free(P_i[i].VOs[1].T_f);
     }
     free(P_i);
+    kmp_free(&P_f);
 
     return matches;
+}
+
+typedef struct {
+    int lm, text_index, row_index;
+    kmp_state P_f;
+    fingerprinter printer;
+    fingerprint T_f, T_cur, tmp, *past_prints;
+    pattern_row *P_i;
+    int periodic;
+} fmatch_state;
+
+fmatch_state fmatch_build(char *P, int m, int n, int alpha) {
+    fmatch_state state;
+    state.text_index = 0;
+    int f = 0, j;
+    state.lm = 0;
+    while ((1 << state.lm) <= m) state.lm++;
+    while ((1 << f <= state.lm)) f++;
+    state.lm -= f + 1;
+    state.P_f = kmp_build(P, 1 << f, m);
+    j = state.P_f.m;
+    if (j == m) {
+        state.periodic = 1;
+        return state;
+    }
+
+    state.periodic = 0;
+    state.printer = fingerprinter_build(n, alpha);
+    state.T_f = init_fingerprint();
+    state.T_cur = init_fingerprint();
+    state.tmp = init_fingerprint();
+    state.P_i = malloc(state.lm * sizeof(pattern_row));
+
+    int i = 0;
+    while (j << 2 < m) {
+        state.P_i[i].row_size = j;
+        state.P_i[i].period = 0;
+        state.P_i[i].count = 0;
+        state.P_i[i].P = init_fingerprint();
+        set_fingerprint(state.printer, &P[j], j, state.P_i[i].P);
+        state.P_i[i].period_f = init_fingerprint();
+        state.P_i[i].VOs[0].T_f = init_fingerprint();
+        state.P_i[i].VOs[0].location = 0;
+        state.P_i[i].VOs[1].T_f = init_fingerprint();
+        state.P_i[i].VOs[1].location = 0;
+        j <<= 1;
+        i++;
+    }
+    state.P_i[i].period = 0;
+    state.P_i[i].count = 0;
+    state.P_i[i].P = init_fingerprint();
+    set_fingerprint(state.printer, &P[j], m - j, state.P_i[i].P);
+    state.P_i[i].period_f = init_fingerprint();
+    state.P_i[i].VOs[0].T_f = init_fingerprint();
+    state.P_i[i].VOs[0].location = 0;
+    state.P_i[i].VOs[1].T_f = init_fingerprint();
+    state.P_i[i].VOs[1].location = 0;
+    state.P_i[i].row_size = m - j;
+
+    state.lm = i + 1;
+
+    state.P_i = realloc(state.P_i, state.lm * sizeof(pattern_row));
+
+    state.past_prints = malloc(state.lm * sizeof(fingerprint));
+    for (i = 0; i < state.lm; i++) state.past_prints[i] = init_fingerprint();
+    state.row_index = 0;
+    return state;
+}
+
+int fmatch_stream(fmatch_state *state, char T_i) {
+    int result = -1;
+    if (state->periodic) {
+        result = kmp_stream(&state->P_f, T_i, state->text_index);
+    } else {
+        int i = state->text_index, j = state->row_index, lm = state->lm;
+        fingerprinter printer = state->printer;
+        fingerprint T_f = state->T_f, T_cur = state->T_cur, tmp = state->tmp, *past_prints = state->past_prints;
+        pattern_row P_j = state->P_i[j];
+        set_fingerprint(printer, &T_i, 1, T_cur);
+        fingerprint_concat(printer, past_prints[(j) ? j - 1 : lm - 1], T_cur, tmp);
+        fingerprint_assign(tmp, past_prints[j]);
+
+        if ((P_j.count > 0) && (i - P_j.VOs[0].location >= P_j.row_size)) {
+            fingerprint_assign(past_prints[(P_j.VOs[0].location + P_j.row_size) % lm], T_cur);
+            fingerprint_suffix(printer, T_cur, P_j.VOs[0].T_f, T_f);
+
+            if (fingerprint_equals(P_j.P, T_f)) {
+                if (j == lm - 1) result = P_j.VOs[0].location + P_j.row_size;
+                else add_occurance(printer, T_cur, P_j.VOs[0].location + P_j.row_size, &state->P_i[j + 1], tmp);
+            }
+            shift_row(printer, &state->P_i[j], tmp);
+        }
+        if (kmp_stream(&state->P_f, T_i, i) != -1) {
+            add_occurance(printer, past_prints[j], i, &state->P_i[0], tmp);
+        }
+        if (++state->row_index == lm) state->row_index = 0;
+    }
+    state->text_index++;
+    return result;
+}
+
+void fmatch_free(fmatch_state *state) {
+    kmp_free(&state->P_f);
+    if (state->periodic) return;
+
+    fingerprinter_free(state->printer);
+    fingerprint_free(state->T_f);
+    fingerprint_free(state->T_cur);
+    fingerprint_free(state->tmp);
+
+    int i;
+    for (i = 0; i < state->lm; i++) {
+        fingerprint_free(state->P_i[i].P);
+        fingerprint_free(state->P_i[i].period_f);
+        fingerprint_free(state->P_i[i].VOs[0].T_f);
+        fingerprint_free(state->P_i[i].VOs[1].T_f);
+    }
+    free(state->P_i);
 }
 
 #endif

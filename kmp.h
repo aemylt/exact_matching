@@ -113,4 +113,9 @@ int kmp_stream(kmp_state *state, char T_j, int j) {
     return result;
 }
 
+void kmp_free(kmp_state *state) {
+    free(state->P);
+    free(state->failure);
+}
+
 #endif
