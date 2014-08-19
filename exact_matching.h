@@ -204,7 +204,7 @@ int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
 }
 
 typedef struct {
-    int lm, text_index, row_index;
+    int lm, row_index;
     kmp_state P_f;
     fingerprinter printer;
     fingerprint T_f, T_cur, tmp, *past_prints;
@@ -214,7 +214,6 @@ typedef struct {
 
 fmatch_state fmatch_build(char *P, int m, int n, int alpha) {
     fmatch_state state;
-    state.text_index = 0;
     int f = 0, j;
     state.lm = 0;
     while ((1 << state.lm) <= m) state.lm++;
@@ -232,7 +231,7 @@ fmatch_state fmatch_build(char *P, int m, int n, int alpha) {
     state.T_f = init_fingerprint();
     state.T_cur = init_fingerprint();
     state.tmp = init_fingerprint();
-    state.P_i = malloc(state.lm * sizeof(pattern_row));
+    state.P_i = malloc(((state.lm) ? state.lm : 1) * sizeof(pattern_row));
 
     int i = 0;
     while (j << 2 < m) {
@@ -270,12 +269,12 @@ fmatch_state fmatch_build(char *P, int m, int n, int alpha) {
     return state;
 }
 
-int fmatch_stream(fmatch_state *state, char T_i) {
+int fmatch_stream(fmatch_state *state, char T_i, int i) {
     int result = -1;
     if (state->periodic) {
-        result = kmp_stream(&state->P_f, T_i, state->text_index);
+        result = kmp_stream(&state->P_f, T_i, i);
     } else {
-        int i = state->text_index, j = state->row_index, lm = state->lm;
+        int j = state->row_index, lm = state->lm;
         fingerprinter printer = state->printer;
         fingerprint T_f = state->T_f, T_cur = state->T_cur, tmp = state->tmp, *past_prints = state->past_prints;
         pattern_row P_j = state->P_i[j];
@@ -298,7 +297,6 @@ int fmatch_stream(fmatch_state *state, char T_i) {
         }
         if (++state->row_index == lm) state->row_index = 0;
     }
-    state->text_index++;
     return result;
 }
 
@@ -319,6 +317,46 @@ void fmatch_free(fmatch_state *state) {
         fingerprint_free(state->P_i[i].VOs[1].T_f);
     }
     free(state->P_i);
+}
+
+typedef struct {
+    fmatch_state fmatch;
+    kmp_state kmp;
+    int text_index, m, lm, *buffer;
+} exactmatch_state;
+
+exactmatch_state exactmatch_build(char *P, int m, int n, int alpha) {
+    exactmatch_state state;
+    state.m = m - 1;
+    int lm = 0;
+    while ((1 << lm) <= m) lm++;
+    state.fmatch = fmatch_build(P, m - lm, n, alpha);
+    state.kmp = kmp_build(&P[m - lm], lm, lm);
+    state.lm = lm;
+    state.buffer = malloc((lm << 1) * sizeof(int));
+    state.text_index = 0;
+    return state;
+}
+
+int exactmatch_stream(exactmatch_state *state, char T_i) {
+    int result = -1, kmp_result, fmatch_result, i = state->text_index;
+    kmp_result = kmp_stream(&state->kmp, T_i, i);
+    fmatch_result = fmatch_stream(&state->fmatch, T_i, i);
+    if (fmatch_result != -1) state->buffer[fmatch_result % (state->lm << 1)] = fmatch_result;
+
+    if (i >= state->m) {
+        int buffer_index = i % state->lm;
+        if ((kmp_result == i) && ((state->buffer[buffer_index] == i - state->lm) || (state->buffer[buffer_index + state->lm] == i - state->lm))) result = i;
+    }
+    state->text_index++;
+
+    return result;
+}
+
+void exactmatch_free(exactmatch_state *state) {
+    fmatch_free(&state->fmatch);
+    kmp_free(&state->kmp);
+    free(state->buffer);
 }
 
 #endif
