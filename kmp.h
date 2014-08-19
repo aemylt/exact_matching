@@ -8,7 +8,6 @@
 #ifndef KMP
 #define KMP
 #include <stdlib.h>
-#include <stdio.h>
 
 /*
     typedef struct kmp_state_t *kmp_state
