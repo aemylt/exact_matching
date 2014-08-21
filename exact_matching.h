@@ -7,44 +7,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-/*
-    typedef struct viable_occurance
-    Structure for viable occurances (VO).
-    Components:
-        int         location - The location of the occurance
-        fingerprint T_f      - The fingerprint of the occurance
-*/
 typedef struct {
     int location;
     fingerprint T_f;
 } viable_occurance;
 
-/*
-    typedef struct pattern_row
-    Structure for rows of the pattern.
-    Components:
-        int         row_size - The size of the row
-        int         period   - The length of the given period in the row
-        int         count    - The number of current VOs
-        fingerprint P        - The pattern's fingerprint
-        fingerprint period_f - The fingerprint of the current period
-*/
 typedef struct {
     int row_size, period, count;
     fingerprint P, period_f;
     viable_occurance VOs[2];
 } pattern_row;
 
-/*
-    void shift_row(fingerprinter printer, pattern_row *P_i, fingerprint tmp)
-    Removes the first VO from the row.
-    Parameters:
-        fingerprinter printer - The printer for this case
-        pattern_row   *P_i    - Address of the row
-        fingerprint   tmp     - Temporary fingerprint to avoid memory allocation
-    Returns void:
-        Value modified in P_i
-*/
 void shift_row(fingerprinter printer, pattern_row *P_i, fingerprint tmp) {
     if (P_i->count <= 2) {
         fingerprint_assign(P_i->VOs[1].T_f, P_i->VOs[0].T_f);
@@ -57,18 +30,6 @@ void shift_row(fingerprinter printer, pattern_row *P_i, fingerprint tmp) {
     P_i->count--;
 }
 
-/*
-    void add_occurance(fingerprinter printer, fingerprint T_f, int location, pattern_row *P_i, fingerprint tmp)
-    Adds a VO to the row. If there are less than two occurances then it is simply added, otherwise it is added if it fits the period properties.
-    Parameters:
-        fingerprinter printer  - The printer for this case
-        fingerprint   T_f      - The fingerprint to add
-        int           location - The location in the text of the fingerprint
-        pattern_row   *P_i     - The address if the row
-        fingerprint   tmp      - Temporary fingerprint to avoid memory allocation
-    Returns void:
-        Value modified in P_i
-*/
 void add_occurance(fingerprinter printer, fingerprint T_f, int location, pattern_row *P_i, fingerprint tmp) {
     if (P_i->count < 2) {
         fingerprint_assign(T_f, P_i->VOs[P_i->count].T_f);
@@ -89,20 +50,6 @@ void add_occurance(fingerprinter printer, fingerprint T_f, int location, pattern
     }
 }
 
-/*
-    int fingerprint_match(char* T, int n, char* P, int m, int alpha, int* results)
-    Exact matching in O(nlogm) time with fingerprints.
-    Parameters:
-        char *T       - Text
-        int  n        - Size of text
-        char *P       - Pattern
-        int  m        - Size of pattern
-        int  alpha    - Error constant
-        int  *results - Array for results
-    Returns int:
-        Number of matches
-        Index of each match returned in results
-*/
 int fingerprint_match(char *T, int n, char *P, int m, char *sigma, int s_sigma, int alpha, int *results) {
     int lm = 0, f = 0, i = 0, j, matches = 0;
     while ((1 << lm) <= m) lm++;
@@ -204,12 +151,11 @@ int fingerprint_match(char *T, int n, char *P, int m, char *sigma, int s_sigma, 
 }
 
 typedef struct {
-    int lm, row_index;
+    int lm, row_index, periodic;
     kmp_state P_f;
     fingerprinter printer;
     fingerprint T_f, T_cur, tmp, *past_prints;
     pattern_row *P_i;
-    int periodic;
 } fmatch_state;
 
 fmatch_state fmatch_build(char *P, int m, char *sigma, int s_sigma, int n, int alpha) {

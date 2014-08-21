@@ -6,9 +6,8 @@
 
 typedef struct {
     cmph_t *hash;
-    int *values;
+    int *values, num;
     char *keys;
-    int num;
 } hash_lookup;
 
 hash_lookup hashlookup_build(char **keys, int *values, int num) {

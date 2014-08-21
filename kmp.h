@@ -1,36 +1,12 @@
-/*
-    kmp.h
-    Implementation of the Knuth-Morris-Pratt pattern matching algorithm.
-    More information is available here: http://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
-    This variant of the algorithm is from lecture slides courtesy of Dr. Raphaël Clifford: (private link) https://www.cs.bris.ac.uk/Teaching/Resources/COMS21103/material-dima/string_matching.pdf
-*/
-
 #ifndef KMP
 #define KMP
 #include "hash_lookup.h"
 #include <stdlib.h>
 
-/*
-    typedef struct kmp_state_t *kmp_state
-    Structure to hold internal state of KMP algorithm during stream.
-    Components:
-        char* P       - Pattern
-        int   m       - Length of pattern
-        int   i       - Current index of pattern
-        int*  failure - Failure table for pattern
-*/
 typedef struct {
-    char *P;
-    int m;
-    int i;
-    int *failure;
-    int matched_reset;
-    hash_lookup *lookup;
-
-    int period_len;
-    char period_break;
-    hash_lookup break_lookup;
-    int has_break;
+    char *P, period_break;
+    int m, i, matched_reset, period_len, has_break;
+    hash_lookup *lookup, break_lookup;
 } kmp_state;
 
 char get_P_i(kmp_state state, int i) {
@@ -50,15 +26,6 @@ int get_hash_i(kmp_state state, int i, char a) {
     return hashlookup_search(state.lookup[(i % state.period_len) + state.period_len], a);
 }
 
-/*
-    kmp_state kmp_build(char* P, int m)
-    Creates an initial KMP state for the pattern
-    Parameters:
-        char* P - Pattern
-        int   m - Length of pattern
-    Returns kmp_state:
-        An initial KMP state for the pattern, where i = j = 0
-*/
 kmp_state kmp_build(char *P, int m, int p_len, char *sigma, int s_sigma) {
     int i, j, k, l, count, *values, *failure;
     char **keys;
@@ -176,18 +143,6 @@ kmp_state kmp_build(char *P, int m, int p_len, char *sigma, int s_sigma) {
     return state;
 }
 
-/*
-    int kmp_stream(kmp_state state, char T_j)
-    Returns whether a match occurs for character T_j.
-    Parameters:
-        kmp_state state - The current state of the algorithm
-        char      T_j   - The next character in the text
-        int       j     - The current index of the text
-    Returns int:
-        j  if P == T[j - m + 1:j]
-        -1 otherwise
-        state parameter is modified by reference
-*/
 int kmp_stream(kmp_state *state, char T_j, int j) {
     int i = state->i, result = -1;
     if (get_P_i(*state, i + 1) != T_j) i = get_hash_i(*state, i + 1, T_j);
