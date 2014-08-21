@@ -2,6 +2,7 @@
 #define HASH_LOOKUP
 
 #include <cmph.h>
+#include <stdlib.h>
 
 typedef struct {
     cmph_t *hash;
@@ -42,11 +43,11 @@ hash_lookup hashlookup_build(char **keys, int *values, int num) {
     return lookup;
 }
 
-int hashlookup_search(hash_lookup *lookup, char key) {
-    if (lookup->num == 0) return -1;
-    if (lookup->num == 1) return (key == lookup->keys[0]) ? lookup->values[0] : -1;
-    int id = cmph_search(lookup->hash, &key, 1);
-    return ((id < lookup->num) && (key == lookup->keys[id])) ? lookup->values[id] : -1;
+int hashlookup_search(hash_lookup lookup, char key) {
+    if (lookup.num == 0) return -1;
+    if (lookup.num == 1) return (key == lookup.keys[0]) ? lookup.values[0] : -1;
+    int id = cmph_search(lookup.hash, &key, 1);
+    return ((id < lookup.num) && (key == lookup.keys[id])) ? lookup.values[id] : -1;
 }
 
 void hashlookup_free(hash_lookup *lookup) {

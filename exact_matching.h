@@ -103,12 +103,12 @@ void add_occurance(fingerprinter printer, fingerprint T_f, int location, pattern
         Number of matches
         Index of each match returned in results
 */
-int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
+int fingerprint_match(char *T, int n, char *P, int m, char *sigma, int s_sigma, int alpha, int *results) {
     int lm = 0, f = 0, i = 0, j, matches = 0;
     while ((1 << lm) <= m) lm++;
     while ((1 << f <= lm)) f++;
     lm -= f + 1;
-    kmp_state P_f = kmp_build(P, 1 << f, m);
+    kmp_state P_f = kmp_build(P, 1 << f, m, sigma, s_sigma);
     j = P_f.m;
     if (j == m) {
         for (i = 0; i < n; i++) if (kmp_stream(&P_f, T[i], i) != -1) results[matches++] = i;
@@ -212,14 +212,14 @@ typedef struct {
     int periodic;
 } fmatch_state;
 
-fmatch_state fmatch_build(char *P, int m, int n, int alpha) {
+fmatch_state fmatch_build(char *P, int m, char *sigma, int s_sigma, int n, int alpha) {
     fmatch_state state;
     int f = 0, j;
     state.lm = 0;
     while ((1 << state.lm) <= m) state.lm++;
     while ((1 << f <= state.lm)) f++;
     state.lm -= f + 1;
-    state.P_f = kmp_build(P, 1 << f, m);
+    state.P_f = kmp_build(P, 1 << f, m, sigma, s_sigma);
     j = state.P_f.m;
     if (j == m) {
         state.periodic = 1;
@@ -325,13 +325,13 @@ typedef struct {
     int text_index, m, lm, *buffer;
 } exactmatch_state;
 
-exactmatch_state exactmatch_build(char *P, int m, int n, int alpha) {
+exactmatch_state exactmatch_build(char *P, int m, char *sigma, int s_sigma, int n, int alpha) {
     exactmatch_state state;
     state.m = m - 1;
     int lm = 0;
     while ((1 << lm) <= m) lm++;
-    state.fmatch = fmatch_build(P, m - lm, n, alpha);
-    state.kmp = kmp_build(&P[m - lm], lm, lm);
+    state.fmatch = fmatch_build(P, m - lm, sigma, s_sigma, n, alpha);
+    state.kmp = kmp_build(&P[m - lm], lm, lm, sigma, s_sigma);
     state.lm = lm;
     state.buffer = malloc((lm << 1) * sizeof(int));
     state.text_index = 0;

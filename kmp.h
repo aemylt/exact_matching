@@ -7,6 +7,7 @@
 
 #ifndef KMP
 #define KMP
+#include "hash_lookup.h"
 #include <stdlib.h>
 
 /*
@@ -19,13 +20,16 @@
         int*  failure - Failure table for pattern
 */
 typedef struct {
-    char* P;
+    char *P;
     int m;
     int i;
-    int* failure;
+    int *failure;
+    int matched_reset;
+    hash_lookup *lookup;
+
     int period_len;
     char period_break;
-    int break_failure;
+    hash_lookup break_lookup;
     int has_break;
 } kmp_state;
 
@@ -35,10 +39,15 @@ char get_P_i(kmp_state state, int i) {
     return state.P[i % state.period_len];
 }
 
-int get_failure_i(kmp_state state, int i) {
-    if (i < state.period_len) return state.failure[i];
-    if ((i == state.m - 1) && (state.has_break)) return state.break_failure;
-    return state.failure[state.period_len - 1] + i - state.period_len + 1;
+int get_failure_i(kmp_state state, int* failure, int i, int double_period) {
+    if (i < double_period) return failure[i];
+    return failure[double_period - 1] + i - double_period + 1;
+}
+
+int get_hash_i(kmp_state state, int i, char a) {
+    if (i < (state.period_len << 1)) return hashlookup_search(state.lookup[i], a);
+    if ((i == state.m - 1) && (state.has_break)) return hashlookup_search(state.break_lookup, a);
+    return hashlookup_search(state.lookup[(i % state.period_len) + state.period_len], a);
 }
 
 /*
@@ -50,8 +59,9 @@ int get_failure_i(kmp_state state, int i) {
     Returns kmp_state:
         An initial KMP state for the pattern, where i = j = 0
 */
-kmp_state kmp_build(char* P, int m, int p_len) {
-    int i, j;
+kmp_state kmp_build(char *P, int m, int p_len, char *sigma, int s_sigma) {
+    int i, j, k, l, count, *values, *failure;
+    char **keys;
     kmp_state state;
     state.period_len = m;
     state.has_break = 0;
@@ -61,30 +71,108 @@ kmp_state kmp_build(char* P, int m, int p_len) {
     state.m = m;
 
     state.i = -1;
-    state.failure = malloc(m * sizeof(int));
-    state.failure[0] = -1;
+    failure = malloc(m * sizeof(int));
+    failure[0] = -1;
     i = -1;
-    for (j = 1; j < m; j++) {
-        while (i > -1 && P[i + 1] != P[j]) i = state.failure[i];
-        if (P[i + 1] == P[j]) i++;
-        state.failure[j] = i;
-    }
 
-    if (((state.failure[m - 1] + 1) << 1) >= m) {
-        state.period_len = (m - state.failure[m - 1]) << 1;
+    keys = malloc(s_sigma * sizeof(char*));
+    values = malloc(s_sigma * sizeof(int));
+
+    for (j = 1; j < m; j++) {
+        while (i > -1 && P[i + 1] != P[j]) i = failure[i];
+        if (P[i + 1] == P[j]) i++;
+        failure[j] = i;
+    }
+    state.matched_reset = failure[m - 1];
+
+    if (((failure[m - 1] + 1) << 1) >= m) {
+        state.period_len = m - failure[m - 1];
+        int double_period = state.period_len << 1;
         state.P = realloc(state.P, state.period_len * sizeof(char));
-        state.failure = realloc(state.failure, state.period_len * sizeof(int));
-        while ((state.m < p_len) && (((get_failure_i(state, state.m - 1) + 1) << 1) >= state.m)) {
+        failure = realloc(failure, (state.period_len << 1) * sizeof(int));
+
+        state.lookup = malloc((state.period_len << 1) * sizeof(hash_lookup));
+        state.lookup[0] = hashlookup_build(keys, values, 0);
+
+        for (j = 1; j < state.period_len << 1; j++) {
+            count = 0;
+            for (k = 0; k < s_sigma; k++) {
+                if (P[j] != sigma[k]) {
+                    l = failure[j - 1];
+                    if (P[l + 1] == sigma[k]) {
+                        keys[count] = &sigma[k];
+                        values[count++] = l + 1;
+                    } else {
+                        l = hashlookup_search(state.lookup[l + 1], sigma[k]);
+                        if (l != -1) {
+                            keys[count] = &sigma[k];
+                            values[count++] = l;
+                        }
+                    }
+                }
+            }
+
+            state.lookup[j] = hashlookup_build(keys, values, count);
+        }
+
+        while ((state.m < p_len) && (((i + 1) << 1) >= state.m)) {
             state.m++;
-            while (i > -1 && P[i + 1] != P[state.m - 1]) i = get_failure_i(state, i);
+            while (i > -1 && P[i + 1] != P[state.m - 1]) i = get_failure_i(state, failure, i, double_period);
             if (P[i + 1] == P[state.m - 1]) i++;
+            state.matched_reset = i;
             if (((i + 1) << 1) < state.m) {
                 state.has_break = 1;
                 state.period_break = P[state.m - 1];
-                state.break_failure = i;
+                count = 0;
+                for (k = 0; k < s_sigma; k++) {
+                    if (P[state.m - 1] != sigma[k]) {
+                        l = get_failure_i(state, failure, state.m - 2, double_period);
+                        if (P[l + 1] == sigma[k]) {
+                            keys[count] = &sigma[k];
+                            values[count++] = l + 1;
+                        } else {
+                            l = get_hash_i(state, l + 1, sigma[k]);
+                            if (l != -1) {
+                                keys[count] = &sigma[k];
+                                values[count++] = l;
+                            }
+                        }
+                    }
+                }
+                state.break_lookup = hashlookup_build(keys, values, count);
             }
         }
+
+    } else {
+        state.lookup = malloc(m * sizeof(hash_lookup));
+        state.lookup[0] = hashlookup_build(keys, values, 0);
+
+        for (j = 1; j < m; j++) {
+            count = 0;
+            for (k = 0; k < s_sigma; k++) {
+                if (P[j] != sigma[k]) {
+                    l = failure[j - 1];
+                    if (P[l + 1] == sigma[k]) {
+                        keys[count] = &sigma[k];
+                        values[count++] = l + 1;
+                    } else {
+                        l = hashlookup_search(state.lookup[l + 1], sigma[k]);
+                        if (l != -1) {
+                            keys[count] = &sigma[k];
+                            values[count++] = l;
+                        }
+                    }
+                }
+            }
+
+            state.lookup[j] = hashlookup_build(keys, values, count);
+        }
     }
+
+    free(keys);
+    free(values);
+    free(failure);
+
     return state;
 }
 
@@ -102,11 +190,12 @@ kmp_state kmp_build(char* P, int m, int p_len) {
 */
 int kmp_stream(kmp_state *state, char T_j, int j) {
     int i = state->i, result = -1;
-    while (i > -1 && get_P_i(*state, i + 1) != T_j) i = get_failure_i(*state, i);
-    if (get_P_i(*state, i + 1) == T_j) i++;
+    if (get_P_i(*state, i + 1) != T_j) i = get_hash_i(*state, i + 1, T_j);
+    else i++;
+
     if (i == state->m - 1) {
         result = j;
-        i = get_failure_i(*state, i);
+        i = state->matched_reset;
     }
     state->i = i;
     return result;
@@ -114,7 +203,14 @@ int kmp_stream(kmp_state *state, char T_j, int j) {
 
 void kmp_free(kmp_state *state) {
     free(state->P);
-    free(state->failure);
+
+    int k, distance = (state->period_len == state->m) ? state->m : state->period_len << 1;
+    for (k = 0; k < distance; k++) {
+        hashlookup_free(&state->lookup[k]);
+    }
+    free(state->lookup);
+
+    if (state->has_break) hashlookup_free(&state->break_lookup);
 }
 
 #endif

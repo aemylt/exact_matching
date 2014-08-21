@@ -4,7 +4,7 @@ GMPLIB=-L/gmp_install/lib -lgmp
 CMPHLIB=-L/usr/local/lib/libcmph.la -lcmph
 
 all:
-	$(CC) $(CARGS) exact_matching.c -o exact_matching $(GMPLIB)
+	$(CC) $(CARGS) exact_matching.c -o exact_matching $(GMPLIB) $(CMPHLIB)
 
 clean:
 	rm exact_matching
