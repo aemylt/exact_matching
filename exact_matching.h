@@ -1,3 +1,9 @@
+/*
+    exact_matching.h
+    Performs probabilistic exact matching in constant time per character with logarithmic space.
+    Based on work by Breslauer and Galil: http://www.dagstuhl.de/mat/Files/11/11081/11081.BreslauerDany.ExtAbstract.pdf
+*/
+
 #ifndef EXACT_MATCHING
 #define EXACT_MATCHING
 
@@ -7,17 +13,45 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+/*
+    typedef struct viable_occurance
+    Structure for points where there may be a pattern.
+    Components:
+        int         location - The location of the occurance
+        fingerprint T_f      - The fingerprint of the text up to that location
+*/
 typedef struct {
     int location;
     fingerprint T_f;
 } viable_occurance;
 
+/*
+    typedef struct pattern_row
+    Structure for each portion of the pattern.
+    Components:
+        int              row_size - The size of the portion
+        int              period   - The length of the current period
+        int              count    - The number of items in the portion
+        fingerprint      P        - The fingerprint of this portion of the pattern
+        fingerprint      period_f - The fingerprint of the current period
+        viable_occurance VOs[2]   - The first and last viable occurances
+*/
 typedef struct {
     int row_size, period, count;
     fingerprint P, period_f;
     viable_occurance VOs[2];
 } pattern_row;
 
+/*
+    shift_row
+    Removes a viable occurance from this portion of the pattern.
+    Parameters:
+        fingerprinter printer - The printer to use
+        pattern_row   *P_i    - The row to shift
+        fingerprint   tmp     - Temporary space
+    Returns void:
+        Value returned by reference in P_i.
+*/
 void shift_row(fingerprinter printer, pattern_row *P_i, fingerprint tmp) {
     if (P_i->count <= 2) {
         fingerprint_assign(P_i->VOs[1].T_f, P_i->VOs[0].T_f);
@@ -30,6 +64,19 @@ void shift_row(fingerprinter printer, pattern_row *P_i, fingerprint tmp) {
     P_i->count--;
 }
 
+/*
+    add_occurance
+    Adds a viable occurance to a row.
+    Parameters:
+        fingerprinter printer - The printer to use
+        fingerprint T_f - The fingerprint of the viable occurance
+        int location - The location of the viable occurance
+        pattern_row *P_i - The stage to add the viable occurance to
+        fingerprint tmp - Temporary space
+    Returns void:
+        Value returned by reference in P_i.
+        If there is a period and the viable occurance doesn't fit the period, the viable occurance will be discarded.
+*/
 void add_occurance(fingerprinter printer, fingerprint T_f, int location, pattern_row *P_i, fingerprint tmp) {
     if (P_i->count < 2) {
         fingerprint_assign(T_f, P_i->VOs[P_i->count].T_f);
@@ -50,6 +97,21 @@ void add_occurance(fingerprinter printer, fingerprint T_f, int location, pattern
     }
 }
 
+/*
+    fingerprint_match
+    Exact matching on the whole text and pattern using fingerprints.
+    Parameters:
+        char *T - Text
+        int n - Length of text
+        char *P - Pattern
+        int m - Length of pattern
+        char *sigma - Alphabet
+        int s_sigma - Size of alphabet
+        int *results - Matches
+    Returns int:
+        Number of matches.
+        Location of matches returned by reference in results.
+*/
 int fingerprint_match(char *T, int n, char *P, int m, char *sigma, int s_sigma, int alpha, int *results) {
     int lm = 0, f = 0, i = 0, j, matches = 0;
     while ((1 << lm) <= m) lm++;
@@ -150,6 +212,21 @@ int fingerprint_match(char *T, int n, char *P, int m, char *sigma, int s_sigma, 
     return matches;
 }
 
+/*
+    typedef struct fmatch_state
+    Structure for the current state of the fingerprint matching algorithm.
+    Components:
+        int           lm           - Number of rows
+        int           row_index    - Current row to check
+        int           periodic     - 1 if the pattern is periodic, 0 otherwise
+        kmp_state     P_f          - KMP stream of the first log_2(log_2(m)) characters
+        fingerprinter printer      - The printer to use
+        fingerprint   T_f          - The fingerprint to check any viable occurances with
+        fingerprint   T_cur        - The fingerprint of the character that just occured
+        fingerprint   tmp          - Temporary space
+        fingerprint   *past_prints - The last lm fingerprints to occur
+        pattern_row   *P_i         - Array of pattern components
+*/
 typedef struct {
     int lm, row_index, periodic;
     kmp_state P_f;
@@ -158,6 +235,19 @@ typedef struct {
     pattern_row *P_i;
 } fmatch_state;
 
+/*
+    fmatch_build
+    Constructs a fingerprint-matching state.
+    Parameters:
+        char *P      - The pattern
+        int  m       - Length of the pattern
+        char *sigma  - The alphabet
+        int  s_sigma - Size of the alphabet
+        int  n       - Length of the text
+        int  alpha   - Desired level of accuracy
+    Returns fmatch_state:
+        Initial state for fingerprint matching
+*/
 fmatch_state fmatch_build(char *P, int m, char *sigma, int s_sigma, int n, int alpha) {
     fmatch_state state;
     int f = 0, j;
@@ -215,6 +305,20 @@ fmatch_state fmatch_build(char *P, int m, char *sigma, int s_sigma, int n, int a
     return state;
 }
 
+/*
+    fmatch_stream
+    Performs next round of fingerprint matching.
+    Parameters:
+        fmatch_state *state - The current state of the algorithm
+        char T_i - The next character of the text
+        int i - The index of the text
+    Returns int:
+        Index of latest match if one was found in this round.
+        -1 otherwise
+        Parameter state modified by reference to the next state of the algorithm.
+    Notes:
+        Matches may be found up to log_2(m) rounds after index was entered.
+*/
 int fmatch_stream(fmatch_state *state, char T_i, int i) {
     int result = -1;
     if (state->periodic) {
@@ -246,6 +350,12 @@ int fmatch_stream(fmatch_state *state, char T_i, int i) {
     return result;
 }
 
+/*
+    fmatch_free
+    Frees a fingerprint matching state.
+    Parameters:
+        fmatch_state *state - The algorithm to free
+*/
 void fmatch_free(fmatch_state *state) {
     kmp_free(&state->P_f);
     if (state->periodic) return;
@@ -265,12 +375,36 @@ void fmatch_free(fmatch_state *state) {
     free(state->P_i);
 }
 
+/*
+    typedef struct exactmatch_state
+    Structure for stream-based exact matching in constant time per character and logm size.
+    Components:
+        fmatch_state fmatch     - Fingerprint matching for the first m - log_2(m) characters of the pattern
+        kmp_state    kmp        - KMP for the last log_2(m) characters of the pattern
+        int          text_index - Index of the text
+        int          m          - Length of the pattern
+        int          lm         - log_2(m)
+        int          *buffer    - The past 2*log_2(m) results of the fingerprint matching
+*/
 typedef struct {
     fmatch_state fmatch;
     kmp_state kmp;
     int text_index, m, lm, *buffer;
 } exactmatch_state;
 
+/*
+    exactmatch_build
+    Constructs an exact matching algorithm.
+    Parameters:
+        char *P      - The pattern
+        int  m       - Length of the pattern
+        char *sigma  - The alphabet
+        int  s_sigma - The size of the alphabet
+        int  n       - The length of the text
+        int  alpha   - The level of accuracy desired
+    Returns exactmatch_state:
+        The initial state for the algorithm with pattern P.
+*/
 exactmatch_state exactmatch_build(char *P, int m, char *sigma, int s_sigma, int n, int alpha) {
     exactmatch_state state;
     state.m = m - 1;
@@ -284,6 +418,17 @@ exactmatch_state exactmatch_build(char *P, int m, char *sigma, int s_sigma, int 
     return state;
 }
 
+/*
+    exactmatch_stream
+    Performs the next round of exact matching.
+    Parameters:
+        exactmatch_state *state - The current state of the algorithm
+        char             T_i    - The next character of the text
+    Returns int:
+        i if there is a match at index T[i]
+        -1 otherwise
+        Parameter state modified by reference to the next state of the algorithm.
+*/
 int exactmatch_stream(exactmatch_state *state, char T_i) {
     int result = -1, kmp_result, fmatch_result, i = state->text_index;
     kmp_result = kmp_stream(&state->kmp, T_i, i);
@@ -299,6 +444,12 @@ int exactmatch_stream(exactmatch_state *state, char T_i) {
     return result;
 }
 
+/*
+    exactmatch_free
+    Frees an exact matching state from memory.
+    Parameters:
+        exactmatch_state *state - The state to free
+*/
 void exactmatch_free(exactmatch_state *state) {
     fmatch_free(&state->fmatch);
     kmp_free(&state->kmp);
