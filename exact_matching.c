@@ -13,13 +13,13 @@ int check_results(int* correct, int* result, int size) {
 
 void stream_test(char *T, int n, char *P, int m, char *sigma, int s_sigma, int* correct, int num_correct) {
     int i, counter = 0;
-    exactmatch_state state = exactmatch_build(P, m, sigma, s_sigma, n, 0);
+    fmatch_state state = fmatch_build(P, m, sigma, s_sigma, n, 0);
     for (i = 0; i < n; i++) {
-        if ((counter < num_correct) && (i == correct[counter])) assert(exactmatch_stream(&state, T[i]) == correct[counter++]);
-        else assert(exactmatch_stream(&state, T[i]) == -1);
+        if ((counter < num_correct) && (i == correct[counter])) assert(fmatch_stream(&state, T[i], i) == correct[counter++]);
+        else assert(fmatch_stream(&state, T[i], i) == -1);
     }
 
-    exactmatch_free(&state);
+    fmatch_free(&state);
 }
 
 int main(void) {
@@ -97,6 +97,14 @@ int main(void) {
     results_len = fingerprint_match(T, 93, P, 64, "abcd", 4, alpha, results);
     test_check(correct, correct_len, results, results_len);
     stream_test(T, 93, P, 64, "abcd", 4, correct, correct_len);
+
+    T = "aaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaaabbbbbcccccaaaaaaaaaabbbbbcccccddddd";
+    P = "aaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaa";
+    correct[0] = 159;
+    correct_len = 1;
+    results_len = fingerprint_match(T, 200, P, 160, "abcd", 4, alpha, results);
+    test_check(correct, correct_len, results, results_len);
+    stream_test(T, 200, P, 160, "abcd", 4, correct, correct_len);
 
     free(results);
     free(correct);

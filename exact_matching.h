@@ -299,8 +299,9 @@ fmatch_state fmatch_build(char *P, int m, char *sigma, int s_sigma, int n, int a
 
     state.P_i = realloc(state.P_i, state.lm * sizeof(pattern_row));
 
-    state.past_prints = malloc(state.lm * sizeof(fingerprint));
-    for (i = 0; i < state.lm; i++) state.past_prints[i] = init_fingerprint();
+    state.past_prints = malloc((state.lm - 1) * sizeof(fingerprint));
+    state.past_prints[0] = init_fingerprint();
+    for (i = 1; i < state.lm - 1; i++) state.past_prints[i] = init_fingerprint();
     state.row_index = 0;
     return state;
 }
@@ -327,25 +328,33 @@ int fmatch_stream(fmatch_state *state, char T_i, int i) {
         int j = state->row_index, lm = state->lm;
         fingerprinter printer = state->printer;
         fingerprint T_f = state->T_f, T_cur = state->T_cur, tmp = state->tmp, *past_prints = state->past_prints;
-        pattern_row P_j = state->P_i[j];
+        pattern_row P_l = state->P_i[lm - 1];
         set_fingerprint(printer, &T_i, 1, T_cur);
-        fingerprint_concat(printer, past_prints[(j) ? j - 1 : lm - 1], T_cur, tmp);
+        fingerprint_concat(printer, past_prints[(j) ? j - 1 : ((lm - 1) ? lm - 2 : 0)], T_cur, tmp);
         fingerprint_assign(tmp, past_prints[j]);
 
-        if ((P_j.count > 0) && (i - P_j.VOs[0].location >= P_j.row_size)) {
-            fingerprint_assign(past_prints[(P_j.VOs[0].location + P_j.row_size) % lm], T_cur);
-            fingerprint_suffix(printer, T_cur, P_j.VOs[0].T_f, T_f);
+        if (j < lm - 1) {
+            pattern_row P_j = state->P_i[j];
+            if ((P_j.count > 0) && (i - P_j.VOs[0].location >= P_j.row_size)) {
+                fingerprint_assign(past_prints[(P_j.VOs[0].location + P_j.row_size) % (lm - 1)], T_cur);
+                fingerprint_suffix(printer, T_cur, P_j.VOs[0].T_f, T_f);
 
-            if (fingerprint_equals(P_j.P, T_f)) {
-                if (j == lm - 1) result = P_j.VOs[0].location + P_j.row_size;
-                else add_occurance(printer, T_cur, P_j.VOs[0].location + P_j.row_size, &state->P_i[j + 1], tmp);
+                if (fingerprint_equals(P_j.P, T_f)) add_occurance(printer, T_cur, P_j.VOs[0].location + P_j.row_size, &state->P_i[j + 1], tmp);
+                shift_row(printer, &state->P_i[j], tmp);
             }
-            shift_row(printer, &state->P_i[j], tmp);
+        }
+
+        if ((P_l.count > 0) && (i - P_l.VOs[0].location == P_l.row_size)) {
+            fingerprint_assign(past_prints[j], T_cur);
+            fingerprint_suffix(printer, T_cur, P_l.VOs[0].T_f, T_f);
+
+            if (fingerprint_equals(P_l.P, T_f)) result = i;
+            shift_row(printer, &state->P_i[lm - 1], tmp);
         }
         if (kmp_stream(&state->P_f, T_i, i) != -1) {
             add_occurance(printer, past_prints[j], i, &state->P_i[0], tmp);
         }
-        if (++state->row_index == lm) state->row_index = 0;
+        if (++state->row_index >= lm - 1) state->row_index = 0;
     }
     return result;
 }
@@ -373,87 +382,9 @@ void fmatch_free(fmatch_state *state) {
         fingerprint_free(state->P_i[i].VOs[1].T_f);
     }
     free(state->P_i);
-}
 
-/*
-    typedef struct exactmatch_state
-    Structure for stream-based exact matching in constant time per character and logm size.
-    Components:
-        fmatch_state fmatch     - Fingerprint matching for the first m - log_2(m) characters of the pattern
-        kmp_state    kmp        - KMP for the last log_2(m) characters of the pattern
-        int          text_index - Index of the text
-        int          m          - Length of the pattern
-        int          lm         - log_2(m)
-        int          *buffer    - The past 2*log_2(m) results of the fingerprint matching
-*/
-typedef struct {
-    fmatch_state fmatch;
-    kmp_state kmp;
-    int text_index, m, lm, *buffer;
-} exactmatch_state;
-
-/*
-    exactmatch_build
-    Constructs an exact matching algorithm.
-    Parameters:
-        char *P      - The pattern
-        int  m       - Length of the pattern
-        char *sigma  - The alphabet
-        int  s_sigma - The size of the alphabet
-        int  n       - The length of the text
-        int  alpha   - The level of accuracy desired
-    Returns exactmatch_state:
-        The initial state for the algorithm with pattern P.
-*/
-exactmatch_state exactmatch_build(char *P, int m, char *sigma, int s_sigma, int n, int alpha) {
-    exactmatch_state state;
-    state.m = m - 1;
-    int lm = 0;
-    while ((1 << lm) <= m) lm++;
-    state.fmatch = fmatch_build(P, m - lm, sigma, s_sigma, n, alpha);
-    state.kmp = kmp_build(&P[m - lm], lm, lm, sigma, s_sigma);
-    state.lm = lm;
-    state.buffer = malloc((lm << 1) * sizeof(int));
-    state.text_index = 0;
-    return state;
-}
-
-/*
-    exactmatch_stream
-    Performs the next round of exact matching.
-    Parameters:
-        exactmatch_state *state - The current state of the algorithm
-        char             T_i    - The next character of the text
-    Returns int:
-        i if there is a match at index T[i]
-        -1 otherwise
-        Parameter state modified by reference to the next state of the algorithm.
-*/
-int exactmatch_stream(exactmatch_state *state, char T_i) {
-    int result = -1, kmp_result, fmatch_result, i = state->text_index;
-    kmp_result = kmp_stream(&state->kmp, T_i, i);
-    fmatch_result = fmatch_stream(&state->fmatch, T_i, i);
-    if (fmatch_result != -1) state->buffer[fmatch_result % (state->lm << 1)] = fmatch_result;
-
-    if (i >= state->m) {
-        int buffer_index = i % state->lm;
-        if ((kmp_result == i) && ((state->buffer[buffer_index] == i - state->lm) || (state->buffer[buffer_index + state->lm] == i - state->lm))) result = i;
-    }
-    state->text_index++;
-
-    return result;
-}
-
-/*
-    exactmatch_free
-    Frees an exact matching state from memory.
-    Parameters:
-        exactmatch_state *state - The state to free
-*/
-void exactmatch_free(exactmatch_state *state) {
-    fmatch_free(&state->fmatch);
-    kmp_free(&state->kmp);
-    free(state->buffer);
+    fingerprint_free(state->past_prints[0]);
+    for (i = 1; i < state->lm - 1; i++) fingerprint_free(state->past_prints[i]);
 }
 
 #endif
