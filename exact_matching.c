@@ -98,6 +98,14 @@ int main(void) {
     test_check(correct, correct_len, results, results_len);
     stream_test(T, 93, P, 64, "abcd", 4, correct, correct_len);
 
+    T = "aaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaaabbbbbcccccaaaaaaaaaabbbbbcccccddddd";
+    P = "aaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaaaaaaabbbbbcccccdddddaaaaabbbbbcccccaaaaa";
+    correct[0] = 159;
+    correct_len = 1;
+    results_len = fingerprint_match(T, 200, P, 160, "abcd", 4, alpha, results);
+    test_check(correct, correct_len, results, results_len);
+    stream_test(T, 200, P, 160, "abcd", 4, correct, correct_len);
+
     free(results);
     free(correct);
     return 0;

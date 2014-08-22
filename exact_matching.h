@@ -413,7 +413,7 @@ exactmatch_state exactmatch_build(char *P, int m, char *sigma, int s_sigma, int 
     state.fmatch = fmatch_build(P, m - lm, sigma, s_sigma, n, alpha);
     state.kmp = kmp_build(&P[m - lm], lm, lm, sigma, s_sigma);
     state.lm = lm;
-    state.buffer = malloc((lm << 1) * sizeof(int));
+    state.buffer = malloc(lm * sizeof(int));
     state.text_index = 0;
     return state;
 }
@@ -433,12 +433,12 @@ int exactmatch_stream(exactmatch_state *state, char T_i) {
     int result = -1, kmp_result, fmatch_result, i = state->text_index;
     kmp_result = kmp_stream(&state->kmp, T_i, i);
     fmatch_result = fmatch_stream(&state->fmatch, T_i, i);
-    if (fmatch_result != -1) state->buffer[fmatch_result % (state->lm << 1)] = fmatch_result;
 
     if (i >= state->m) {
         int buffer_index = i % state->lm;
-        if ((kmp_result == i) && ((state->buffer[buffer_index] == i - state->lm) || (state->buffer[buffer_index + state->lm] == i - state->lm))) result = i;
+        if ((kmp_result == i) && ((state->buffer[buffer_index] == i - state->lm) || (fmatch_result == i - state->lm))) result = i;
     }
+    if (fmatch_result != -1) state->buffer[fmatch_result % state->lm] = fmatch_result;
     state->text_index++;
 
     return result;
