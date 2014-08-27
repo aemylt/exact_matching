@@ -42,10 +42,10 @@ hash_lookup hashlookup_build(char **keys, int *values, int num) {
     if (num > 1) {
         cmph_io_adapter_t *source = cmph_io_vector_adapter(keys, num);
         cmph_config_t *config = cmph_config_new(source);
-        cmph_io_vector_adapter_destroy(source);
         cmph_config_set_algo(config, CMPH_CHD);
         lookup.hash = cmph_new(config);
         cmph_config_destroy(config);
+        cmph_io_vector_adapter_destroy(source);
         lookup.keys = malloc(num * sizeof(char));
         lookup.values = malloc(num * sizeof(int));
 
