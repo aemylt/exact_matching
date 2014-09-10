@@ -54,6 +54,10 @@ typedef struct fingerprinter_t {
     mpz_t p, r;
 } *fingerprinter;
 
+int fingerprinter_size(fingerprinter printer) {
+    return sizeof(mp_limb_t) * (printer->p->_mp_size + printer->r->_mp_size) + sizeof(mpz_t) * 2;
+}
+
 /*
     fingerprinter_build
     Constructs a fingerprint for a problem size and accuracy.
@@ -114,6 +118,10 @@ void fingerprinter_free(fingerprinter printer) {
 typedef struct fingerprint_t {
     mpz_t finger, r_k, r_mk;
 } *fingerprint;
+
+int fingerprint_size(fingerprint f) {
+    return sizeof(mp_limb_t) * (f->finger->_mp_size + f->r_k->_mp_size + f->r_mk->_mp_size) + sizeof(mpz_t) * 3;
+}
 
 /*
     init_fingerprint

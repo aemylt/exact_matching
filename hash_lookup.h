@@ -25,6 +25,12 @@ typedef struct {
     char *keys;
 } hash_lookup;
 
+int hashlookup_size(hash_lookup lookup) {
+    int result = sizeof(int) + sizeof(cmph_t*) + sizeof(int*) + sizeof(char*);
+    if (lookup.num == 1) return result + sizeof(int) + sizeof(char);
+    else return result + (sizeof(int) + sizeof(char)) * lookup.num + (2.07 * lookup.num / 8);
+}
+
 /*
     hashlookup_build
     Constructs a hash_lookup object.

@@ -31,6 +31,14 @@ typedef struct {
     hash_lookup *lookup, break_lookup;
 } kmp_state;
 
+int kmp_size(kmp_state state) {
+    int result = sizeof(char*) + sizeof(char) * (state.period_len + 1) + sizeof(int) * 5 + sizeof(hash_lookup*) + ((state.has_break) ? hashlookup_size(state.break_lookup) : (sizeof(int) + sizeof(cmph_t*) + sizeof(int*) + sizeof(char*)));
+    int limit = (state.period_len == state.m) ? state.period_len : (state.period_len << 1);
+    int i;
+    for (i = 0; i < limit; i++) result += hashlookup_size(state.lookup[i]);
+    return result;
+}
+
 /*
     get_P_i
     Returns the character at that point in the pattern.

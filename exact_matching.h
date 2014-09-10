@@ -235,6 +235,16 @@ typedef struct {
     pattern_row *P_i;
 } fmatch_state;
 
+int fmatch_size(fmatch_state state) {
+    int result = sizeof(int) * 3 + kmp_size(state.P_f) + sizeof(fingerprinter) + sizeof(fingerprint) * 3 + sizeof(fingerprint*) + sizeof(pattern_row*);
+    if (!state.periodic) {
+        result += fingerprinter_size(state.printer) + fingerprint_size(state.T_f) + fingerprint_size(state.T_cur) + fingerprint_size(state.tmp);
+        int i;
+        for (i = 0; i < state.lm; i++) result += sizeof(fingerprint) * 5 + fingerprint_size(state.past_prints[i]) + sizeof(int) * 5 + fingerprint_size(state.P_i[i].P) + fingerprint_size(state.P_i[i].period_f) + fingerprint_size(state.P_i[i].VOs[0].T_f) + fingerprint_size(state.P_i[i].VOs[1].T_f);
+    }
+    return result;
+}
+
 /*
     fmatch_build
     Constructs a fingerprint-matching state.
@@ -391,6 +401,10 @@ typedef struct {
     kmp_state kmp;
     int text_index, m, lm, *buffer;
 } exactmatch_state;
+
+int exactmatch_size(exactmatch_state state) {
+    return sizeof(int) * (3 + state.lm) + kmp_size(state.kmp) + fmatch_size(state.fmatch) + sizeof(int*);
+}
 
 /*
     exactmatch_build
