@@ -105,19 +105,17 @@ void add_occurance(fingerprinter printer, fingerprint T_f, int location, pattern
         int n - Length of text
         char *P - Pattern
         int m - Length of pattern
-        char *sigma - Alphabet
-        int s_sigma - Size of alphabet
         int *results - Matches
     Returns int:
         Number of matches.
         Location of matches returned by reference in results.
 */
-int fingerprint_match(char *T, int n, char *P, int m, char *sigma, int s_sigma, int alpha, int *results) {
+int fingerprint_match(char *T, int n, char *P, int m, int alpha, int *results) {
     int lm = 0, f = 0, i = 0, j, matches = 0;
     while ((1 << lm) <= m) lm++;
     while ((1 << f <= lm)) f++;
     lm -= f + 1;
-    kmp_state P_f = kmp_build(P, 1 << f, m, sigma, s_sigma);
+    kmp_state P_f = kmp_build(P, 1 << f, m);
     j = P_f.m;
     if (j == m) {
         for (i = 0; i < n; i++) if (kmp_stream(&P_f, T[i], i) != -1) results[matches++] = i;
@@ -251,21 +249,19 @@ int fmatch_size(fmatch_state state) {
     Parameters:
         char *P      - The pattern
         int  m       - Length of the pattern
-        char *sigma  - The alphabet
-        int  s_sigma - Size of the alphabet
         int  n       - Length of the text
         int  alpha   - Desired level of accuracy
     Returns fmatch_state:
         Initial state for fingerprint matching
 */
-fmatch_state fmatch_build(char *P, int m, char *sigma, int s_sigma, int n, int alpha) {
+fmatch_state fmatch_build(char *P, int m, int n, int alpha) {
     fmatch_state state;
     int f = 0, j;
     state.lm = 0;
     while ((1 << state.lm) <= m) state.lm++;
     while ((1 << f <= state.lm)) f++;
     state.lm -= f + 1;
-    state.P_f = kmp_build(P, 1 << f, m, sigma, s_sigma);
+    state.P_f = kmp_build(P, 1 << f, m);
     j = state.P_f.m;
     if (j == m) {
         state.periodic = 1;
@@ -412,20 +408,18 @@ int exactmatch_size(exactmatch_state state) {
     Parameters:
         char *P      - The pattern
         int  m       - Length of the pattern
-        char *sigma  - The alphabet
-        int  s_sigma - The size of the alphabet
         int  n       - The length of the text
         int  alpha   - The level of accuracy desired
     Returns exactmatch_state:
         The initial state for the algorithm with pattern P.
 */
-exactmatch_state exactmatch_build(char *P, int m, char *sigma, int s_sigma, int n, int alpha) {
+exactmatch_state exactmatch_build(char *P, int m, int n, int alpha) {
     exactmatch_state state;
     state.m = m - 1;
     int lm = 0;
     while ((1 << lm) <= m) lm++;
-    state.fmatch = fmatch_build(P, m - lm, sigma, s_sigma, n, alpha);
-    state.kmp = kmp_build(&P[m - lm], lm, lm, sigma, s_sigma);
+    state.fmatch = fmatch_build(P, m - lm, n, alpha);
+    state.kmp = kmp_build(&P[m - lm], lm, lm);
     state.lm = lm;
     state.buffer = malloc(lm * sizeof(int));
     state.text_index = 0;
